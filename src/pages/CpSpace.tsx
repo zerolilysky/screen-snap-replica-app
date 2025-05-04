@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Search, Heart, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Couple } from '@/types';
+import { Button } from '@/components/ui/button';
+import EmptyState from '@/components/EmptyState';
 
 const CpSpace: React.FC = () => {
   const navigate = useNavigate();
@@ -25,22 +28,24 @@ const CpSpace: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch couples where the current user is part of
+      // Use explicit column names to fix the "Could not embed" error
       const { data, error } = await supabase
         .from('couples')
         .select(`
           id,
           name,
           created_at,
-          user1:user1_id (
-            id,
-            nickname,
-            avatar
+          user1_id,
+          user2_id,
+          profiles:user1_id (
+            id:id,
+            nickname:nickname,
+            avatar:avatar
           ),
-          user2:user2_id (
-            id,
-            nickname,
-            avatar
+          profiles_2:user2_id (
+            id:id,
+            nickname:nickname,
+            avatar:avatar
           )
         `)
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
@@ -50,17 +55,17 @@ const CpSpace: React.FC = () => {
       if (data) {
         const formattedCouples: Couple[] = data.map(couple => ({
           id: couple.id,
-          name: couple.name,
-          created_at: couple.created_at,
+          name: couple.name || '',
+          created_at: couple.created_at || new Date().toISOString(),
           user1: {
-            id: couple.user1?.id || '',
-            nickname: couple.user1?.nickname || 'Unknown',
-            avatar: couple.user1?.avatar || '/placeholder.svg',
+            id: couple.profiles?.id || '',
+            nickname: couple.profiles?.nickname || 'Unknown',
+            avatar: couple.profiles?.avatar || '/placeholder.svg',
           },
           user2: {
-            id: couple.user2?.id || '',
-            nickname: couple.user2?.nickname || 'Unknown',
-            avatar: couple.user2?.avatar || '/placeholder.svg',
+            id: couple.profiles_2?.id || '',
+            nickname: couple.profiles_2?.nickname || 'Unknown',
+            avatar: couple.profiles_2?.avatar || '/placeholder.svg',
           }
         }));
         setCouples(formattedCouples);
@@ -160,7 +165,6 @@ const CpSpace: React.FC = () => {
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <EmptyState 
-            image="/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png"
             description="您还没有创建CP关系"
           />
           

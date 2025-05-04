@@ -44,7 +44,7 @@ const Messages: React.FC = () => {
     
     setLoading(true);
     try {
-      // Get distinct conversations with the latest message first for messages received
+      // Use explicit column names to fix the "Could not embed" error
       const { data: senders, error: sendersError } = await supabase
         .from('messages')
         .select(`
@@ -53,9 +53,10 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          profiles:sender_id (
-            nickname, 
-            avatar
+          sender:sender_id (
+            id:id,
+            nickname:nickname,
+            avatar:avatar
           )
         `)
         .eq('receiver_id', user.id)
@@ -73,9 +74,10 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          profiles:receiver_id (
-            nickname, 
-            avatar
+          receiver:receiver_id (
+            id:id,
+            nickname:nickname,
+            avatar:avatar
           )
         `)
         .eq('sender_id', user.id)
@@ -90,8 +92,8 @@ const Messages: React.FC = () => {
         partner_id: message.sender_id,
         content: message.content,
         created_at: message.created_at,
-        name: message.profiles?.nickname || 'Unknown',
-        avatar: message.profiles?.avatar || '/placeholder.svg',
+        name: message.sender?.nickname || 'Unknown',
+        avatar: message.sender?.avatar || '/placeholder.svg',
         read: message.read || false,
         is_sender: false
       })) : [];
@@ -101,8 +103,8 @@ const Messages: React.FC = () => {
         partner_id: message.receiver_id,
         content: message.content,
         created_at: message.created_at,
-        name: message.profiles?.nickname || 'Unknown',
-        avatar: message.profiles?.avatar || '/placeholder.svg',
+        name: message.receiver?.nickname || 'Unknown',
+        avatar: message.receiver?.avatar || '/placeholder.svg',
         read: true, // Messages sent by the user are always read
         is_sender: true
       })) : [];
@@ -206,7 +208,7 @@ const Messages: React.FC = () => {
                   />
                 ))}
                 <UserMessage 
-                  avatar="/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png"
+                  avatar="/placeholder.svg"
                   name="Mimi"
                   message="很高兴认识你！"
                   time="12:30"
@@ -214,7 +216,7 @@ const Messages: React.FC = () => {
                   isOnline={true}
                 />
                 <UserMessage 
-                  avatar="/lovable-uploads/710f54bf-505f-4047-86f9-23670f5034fb.png"
+                  avatar="/placeholder.svg"
                   name="冰冰"
                   message="你好，想一起去看电影吗？"
                   time="昨天"
@@ -231,7 +233,6 @@ const Messages: React.FC = () => {
               </div>
             ) : (
               <EmptyState 
-                image="/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png"
                 description="还没有一起聊天的朋友，快去匹配交朋友吧"
               />
             )}
@@ -240,7 +241,6 @@ const Messages: React.FC = () => {
         
         {activeTab === 'match' && (
           <EmptyState 
-            image="/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png"
             description="暂无匹配消息"
           />
         )}

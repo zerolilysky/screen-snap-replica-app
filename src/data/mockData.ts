@@ -4,7 +4,7 @@ import { User, Post, Topic, Couple, Article, Concept } from '../types';
 export const currentUser: User = {
   id: '541763035',
   name: '无无无无呜呜呜呜',
-  avatar: '/lovable-uploads/848fb871-f14d-4ae0-9e30-9860c1ae93cc.png',
+  avatar: '/placeholder.svg',
   gender: 'female',
   verified: false,
   profileCompleted: false,
@@ -14,7 +14,7 @@ export const nearbyUsers: User[] = [
   {
     id: '1',
     name: 'User1',
-    avatar: '/lovable-uploads/901f8811-79d4-419c-a136-0d431efee7f6.png',
+    avatar: '/placeholder.svg',
     gender: 'male',
     distance: '100m内',
     online: true
@@ -22,7 +22,7 @@ export const nearbyUsers: User[] = [
   {
     id: '2',
     name: 'User2',
-    avatar: '/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png',
+    avatar: '/placeholder.svg',
     gender: 'female',
     distance: '100m内',
     online: true
@@ -30,7 +30,7 @@ export const nearbyUsers: User[] = [
   {
     id: '3',
     name: 'User3',
-    avatar: '/lovable-uploads/2ebd8aff-c931-4ddd-8a60-c8bb0782e657.png',
+    avatar: '/placeholder.svg',
     gender: 'female',
     distance: '100m内',
     online: false
@@ -38,7 +38,7 @@ export const nearbyUsers: User[] = [
   {
     id: '4',
     name: 'User4',
-    avatar: '/lovable-uploads/710f54bf-505f-4047-86f9-23670f5034fb.png',
+    avatar: '/placeholder.svg',
     gender: 'female',
     distance: '100m内',
     online: true
@@ -76,7 +76,7 @@ export const feedPosts: Post[] = [
     author: {
       id: '101',
       name: '无无无无呜呜呜呜',
-      avatar: '/lovable-uploads/848fb871-f14d-4ae0-9e30-9860c1ae93cc.png',
+      avatar: '/placeholder.svg',
       gender: 'female',
       location: '北京市',
       online: true,
@@ -93,7 +93,7 @@ export const feedPosts: Post[] = [
     author: {
       id: '102',
       name: 'User102',
-      avatar: '/lovable-uploads/20413ede-fb30-4e74-9f34-d9ec90a0ded6.png',
+      avatar: '/placeholder.svg',
       gender: 'male',
       location: '山西省',
       online: false,
@@ -110,7 +110,7 @@ export const feedPosts: Post[] = [
     author: {
       id: '103',
       name: '该隐X',
-      avatar: '/lovable-uploads/0e9e8623-1010-4f21-9696-4be37ca9f5b6.png',
+      avatar: '/placeholder.svg',
       gender: 'female',
       location: '浙江省',
       online: true,
@@ -130,7 +130,7 @@ export const communityPosts: Post[] = [
     author: {
       id: '104',
       name: '淼西',
-      avatar: '/lovable-uploads/e8101c81-422a-4d63-b1ae-ccfda7120643.png',
+      avatar: '/placeholder.svg',
       gender: 'female',
       location: '河北省',
       online: false
@@ -163,7 +163,7 @@ export const communityPosts: Post[] = [
     author: {
       id: '106',
       name: '我尊脚要生气啦',
-      avatar: '/lovable-uploads/e8101c81-422a-4d63-b1ae-ccfda7120643.png',
+      avatar: '/placeholder.svg',
       gender: 'female',
       location: '',
       online: false
@@ -179,6 +179,8 @@ export const articles: Article[] = [
   {
     id: '1',
     title: '社交距离也太难把握了吧！',
+    content: '社交距离也太难把握了，需要考虑很多因素...',
+    author: '心理专家',
     image: '/placeholder.svg',
     likes: 117,
     comments: 29,
@@ -187,6 +189,8 @@ export const articles: Article[] = [
   {
     id: '2',
     title: '交朋友、约会、恋爱，也是有进度条的吗',
+    content: '人际关系发展的各个阶段...',
+    author: '情感咨询师',
     image: '/placeholder.svg',
     likes: 116,
     comments: 28,
@@ -195,6 +199,8 @@ export const articles: Article[] = [
   {
     id: '3',
     title: '人际交往中的边界感有多重要？',
+    content: '边界感在人际交往中起着至关重要的作用...',
+    author: '社会心理学家',
     image: '/placeholder.svg',
     likes: 89,
     comments: 26,
@@ -218,6 +224,18 @@ export const concepts: Concept[] = [
 export const couples: Couple[] = [
   {
     id: '1',
+    name: 'GHOST & BEAST',
+    created_at: '2025-01-15',
+    user1: {
+      id: '201',
+      nickname: 'GHOST_',
+      avatar: '/placeholder.svg'
+    },
+    user2: {
+      id: '202',
+      nickname: 'BEAST_',
+      avatar: '/placeholder.svg'
+    },
     leftUser: 'GHOST_',
     rightUser: 'BEAST_',
     imageLeft: '/placeholder.svg',
@@ -225,6 +243,18 @@ export const couples: Couple[] = [
   },
   {
     id: '2',
+    name: 'Puff & emotional',
+    created_at: '2025-01-10',
+    user1: {
+      id: '203',
+      nickname: '_Puff',
+      avatar: '/placeholder.svg'
+    },
+    user2: {
+      id: '204',
+      nickname: 'emotional_',
+      avatar: '/placeholder.svg'
+    },
     leftUser: '_Puff',
     rightUser: 'emotional_',
     imageLeft: '/placeholder.svg',

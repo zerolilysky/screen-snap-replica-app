@@ -16,17 +16,13 @@ const Couples: React.FC<CouplesProps> = ({ couples, title = "在Nico撮CP" }) =>
       </div>
       
       <div className="flex space-x-4 px-4 overflow-x-auto">
-        <div className="flex-shrink-0 bg-gray-200 rounded-xl px-6 py-3">
-          <div className="text-center">请求失败</div>
-        </div>
-        
         {couples.map((couple) => (
           <div key={couple.id} className="flex-shrink-0 items-center">
             <div className="flex items-center">
               <div className="relative rounded-full overflow-hidden w-16 h-16 border-4 border-white">
                 <img 
-                  src={couple.imageLeft} 
-                  alt={couple.leftUser}
+                  src={(couple.user1?.avatar || couple.imageLeft || "/placeholder.svg")} 
+                  alt={(couple.user1?.nickname || couple.leftUser || "用户1")}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -35,15 +31,15 @@ const Couples: React.FC<CouplesProps> = ({ couples, title = "在Nico撮CP" }) =>
               </div>
               <div className="relative rounded-full overflow-hidden w-16 h-16 border-4 border-white -ml-4">
                 <img 
-                  src={couple.imageRight} 
-                  alt={couple.rightUser}
+                  src={(couple.user2?.avatar || couple.imageRight || "/placeholder.svg")} 
+                  alt={(couple.user2?.nickname || couple.rightUser || "用户2")}
                   className="w-full h-full object-cover"
                 />
               </div>
             </div>
             <div className="flex justify-center mt-2 text-sm">
-              <span className="mx-1 truncate">{couple.leftUser}</span>
-              <span className="mx-1 truncate">{couple.rightUser}</span>
+              <span className="mx-1 truncate">{couple.user1?.nickname || couple.leftUser || "用户1"}</span>
+              <span className="mx-1 truncate">{couple.user2?.nickname || couple.rightUser || "用户2"}</span>
             </div>
           </div>
         ))}
