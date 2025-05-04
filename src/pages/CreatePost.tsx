@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
 import { ArrowLeft, Image, MapPin, Tag, X, Smile } from 'lucide-react';
@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const CreatePost: React.FC = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, isAuthenticated } = useAuth();
   const { toast } = useToast();
   
   const [content, setContent] = useState('');
@@ -22,8 +22,20 @@ const CreatePost: React.FC = () => {
   const [showTagInput, setShowTagInput] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  if (!user) {
-    navigate('/auth');
+  // Check for authentication on component mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast({
+        title: "需要登录",
+        description: "请先登录后再发布动态",
+        variant: "destructive"
+      });
+      navigate('/auth', { state: { from: { pathname: '/community/post' } } });
+    }
+  }, [isAuthenticated, navigate, toast]);
+  
+  // If not authenticated, don't render the component
+  if (!isAuthenticated) {
     return null;
   }
   
@@ -88,7 +100,7 @@ const CreatePost: React.FC = () => {
       const { data: post, error: postError } = await supabase
         .from('posts')
         .insert({
-          user_id: user.id,
+          user_id: user!.id, // User is guaranteed to exist here
           content: content,
           location: location || null,
         })

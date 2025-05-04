@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,12 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import StatusBar from '../components/StatusBar';
+
 const PostDetail: React.FC = () => {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string; }>();
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,28 +20,64 @@ const PostDetail: React.FC = () => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
-  const {
-    toast
-  } = useToast();
-  const {
-    user
-  } = useAuth();
+  const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const commentInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (id) {
       fetchPost(id);
       fetchComments(id);
       checkIfLiked(id);
+      
+      // Subscribe to real-time updates for comments
+      const commentsChannel = supabase
+        .channel('public:comments')
+        .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'comments', filter: `post_id=eq.${id}` }, 
+          (payload) => {
+            handleNewComment(payload.new);
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(commentsChannel);
+      };
     }
   }, [id, user]);
+
+  const handleNewComment = async (newComment: any) => {
+    try {
+      // Fetch the complete comment with author information
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles!comments_user_id_fkey (
+            id, 
+            nickname, 
+            avatar
+          )
+        `)
+        .eq('id', newComment.id)
+        .single();
+      
+      if (error) throw error;
+      
+      // Add the new comment to the beginning of the list
+      setComments(prevComments => [data, ...prevComments]);
+      setCommentCount(prev => prev + 1);
+    } catch (error) {
+      console.error('Error handling new comment:', error);
+    }
+  };
+
   const fetchPost = async (postId: string) => {
     try {
       setLoading(true);
-      const {
-        data,
-        error
-      } = await supabase.from('posts').select(`
+      const { data, error } = await supabase.from('posts').select(`
           *,
           profiles!posts_user_id_fkey (
             id, 
@@ -55,34 +89,22 @@ const PostDetail: React.FC = () => {
       if (error) throw error;
 
       // Also fetch post images
-      const {
-        data: imageData,
-        error: imageError
-      } = await supabase.from('post_images').select('image_url').eq('post_id', postId);
+      const { data: imageData, error: imageError } = await supabase.from('post_images').select('image_url').eq('post_id', postId);
       if (imageError) throw imageError;
 
       // Also fetch post tags
-      const {
-        data: tagData,
-        error: tagError
-      } = await supabase.from('post_tags').select('tag').eq('post_id', postId);
+      const { data: tagData, error: tagError } = await supabase.from('post_tags').select('tag').eq('post_id', postId);
       if (tagError) throw tagError;
 
       // Count likes
-      const {
-        count: likeCountData,
-        error: likeCountError
-      } = await supabase.from('likes').select('id', {
+      const { count: likeCountData, error: likeCountError } = await supabase.from('likes').select('id', {
         count: 'exact',
         head: true
       }).eq('post_id', postId);
       if (likeCountError) throw likeCountError;
 
       // Count comments
-      const {
-        count: commentCountData,
-        error: commentCountError
-      } = await supabase.from('comments').select('id', {
+      const { count: commentCountData, error: commentCountError } = await supabase.from('comments').select('id', {
         count: 'exact',
         head: true
       }).eq('post_id', postId);
@@ -107,13 +129,11 @@ const PostDetail: React.FC = () => {
       setLoading(false);
     }
   };
+
   const fetchComments = async (postId: string) => {
     try {
       setCommentLoading(true);
-      const {
-        data,
-        error
-      } = await supabase.from('comments').select(`
+      const { data, error } = await supabase.from('comments').select(`
           *,
           profiles!comments_user_id_fkey (
             id, 
@@ -136,19 +156,18 @@ const PostDetail: React.FC = () => {
       setCommentLoading(false);
     }
   };
+
   const checkIfLiked = async (postId: string) => {
     if (!user) return;
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('likes').select('id').eq('post_id', postId).eq('user_id', user.id).single();
+      const { data, error } = await supabase.from('likes').select('id').eq('post_id', postId).eq('user_id', user.id).single();
       if (error && error.code !== 'PGRST116') throw error;
       setLiked(!!data);
     } catch (error: any) {
       console.error('Error checking if post is liked:', error.message);
     }
   };
+
   const handleLike = async () => {
     if (!user) {
       navigate('/auth');
@@ -157,9 +176,7 @@ const PostDetail: React.FC = () => {
     try {
       if (!liked) {
         // Add like
-        const {
-          error
-        } = await supabase.from('likes').insert({
+        const { error } = await supabase.from('likes').insert({
           user_id: user.id,
           post_id: id
         });
@@ -171,9 +188,7 @@ const PostDetail: React.FC = () => {
         });
       } else {
         // Remove like
-        const {
-          error
-        } = await supabase.from('likes').delete().eq('user_id', user.id).eq('post_id', id);
+        const { error } = await supabase.from('likes').delete().eq('user_id', user.id).eq('post_id', id);
         if (error) throw error;
         setLiked(false);
         setLikeCount(prev => prev - 1);
@@ -187,6 +202,7 @@ const PostDetail: React.FC = () => {
       });
     }
   };
+
   const handleSubmitComment = async () => {
     if (!user) {
       navigate('/auth');
@@ -194,10 +210,7 @@ const PostDetail: React.FC = () => {
     }
     if (!newComment.trim()) return;
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('comments').insert({
+      const { data, error } = await supabase.from('comments').insert({
         user_id: user.id,
         post_id: id,
         content: newComment.trim()
@@ -210,9 +223,9 @@ const PostDetail: React.FC = () => {
           )
         `).single();
       if (error) throw error;
-      setComments([data, ...comments]);
+      
+      // Since we have a real-time subscription, the comment will be added automatically
       setNewComment('');
-      setCommentCount(prev => prev + 1);
 
       // Send notification to post owner if it's not the current user
       if (post.user_id !== user.id) {
@@ -224,6 +237,7 @@ const PostDetail: React.FC = () => {
           type: 'comment'
         });
       }
+      
       toast({
         description: "评论成功"
       });
@@ -236,11 +250,13 @@ const PostDetail: React.FC = () => {
       });
     }
   };
+
   const handleShare = () => {
     toast({
       description: "分享功能开发中"
     });
   };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -258,6 +274,15 @@ const PostDetail: React.FC = () => {
       return '刚刚';
     }
   };
+
+  const handleFocusComment = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    commentInputRef.current?.focus();
+  };
+
   if (loading) {
     return <div className="flex flex-col min-h-screen">
         <StatusBar />
@@ -270,6 +295,7 @@ const PostDetail: React.FC = () => {
         </div>
       </div>;
   }
+
   if (!post) {
     return <div className="flex flex-col min-h-screen">
         <StatusBar />
@@ -282,6 +308,7 @@ const PostDetail: React.FC = () => {
         </div>
       </div>;
   }
+
   return <div className="flex flex-col min-h-screen bg-gray-50">
       <StatusBar />
       
@@ -350,7 +377,7 @@ const PostDetail: React.FC = () => {
                 <Heart className={`h-5 w-5 mr-1 ${liked ? 'text-red-500 fill-red-500' : ''}`} />
                 <span>{likeCount}</span>
               </button>
-              <button className="flex items-center text-gray-500">
+              <button className="flex items-center text-gray-500" onClick={handleFocusComment}>
                 <MessageCircle className="h-5 w-5 mr-1" />
                 <span>{commentCount}</span>
               </button>
@@ -424,9 +451,10 @@ const PostDetail: React.FC = () => {
       
       {/* Comment input */}
       <div className="sticky bottom-0 bg-white border-t p-2 flex items-center">
-        <input ref={commentInputRef} type="text" value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="说点什么吧..." className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-        <Send className={`h-6 w-6 ml-2 ${newComment.trim() ? 'text-blue-500' : 'text-gray-400'}`} onClick={handleSubmitComment} />
+        <input ref={commentInputRef} type="text" value={newComment} onChange={e => setNewComment(e.target.value)} placeholder={user ? "说点什么吧..." : "请先登录后评论"} className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500" disabled={!user} />
+        <Send className={`h-6 w-6 ml-2 ${newComment.trim() && user ? 'text-blue-500' : 'text-gray-400'}`} onClick={handleSubmitComment} />
       </div>
     </div>;
 };
+
 export default PostDetail;

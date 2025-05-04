@@ -14,7 +14,7 @@ import { Post } from '@/types';
 
 const Community: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'following' | 'recommended'>('recommended');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
@@ -184,10 +184,15 @@ const Community: React.FC = () => {
   };
 
   const handleCreatePost = () => {
-    if (user) {
+    if (isAuthenticated) {
       navigate('/community/post');
     } else {
-      navigate('/auth');
+      toast({
+        title: "需要登录",
+        description: "请先登录后再发布动态",
+        variant: "destructive"
+      });
+      navigate('/auth', { state: { from: { pathname: '/community/post' } } });
     }
   };
 

@@ -15,7 +15,7 @@ interface PostCardProps {
 }
 
 const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
@@ -26,8 +26,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
   const commentInputRef = useRef<HTMLInputElement>(null);
   
   const handleLike = async () => {
-    if (!user) {
-      navigate('/auth');
+    if (!isAuthenticated) {
+      toast({
+        title: "需要登录",
+        description: "请先登录后再点赞",
+        variant: "destructive"
+      });
+      navigate('/auth', { state: { from: { pathname: `/community/post/${post.id}` } } });
       return;
     }
     
@@ -35,7 +40,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
       try {
         const { error } = await supabase
           .from('likes')
-          .insert({ user_id: user.id, post_id: post.id });
+          .insert({ user_id: user!.id, post_id: post.id });
           
         if (error) throw error;
         
@@ -55,7 +60,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
         const { error } = await supabase
           .from('likes')
           .delete()
-          .eq('user_id', user.id)
+          .eq('user_id', user!.id)
           .eq('post_id', post.id);
           
         if (error) throw error;
@@ -69,8 +74,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
   };
   
   const handleComment = async () => {
-    if (!user) {
-      navigate('/auth');
+    if (!isAuthenticated) {
+      toast({
+        title: "需要登录",
+        description: "请先登录后再评论",
+        variant: "destructive"
+      });
+      navigate('/auth', { state: { from: { pathname: `/community/post/${post.id}` } } });
       return;
     }
     
@@ -107,14 +117,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
   };
   
   const submitComment = async () => {
-    if (!commentText.trim() || !user) return;
+    if (!commentText.trim() || !isAuthenticated) return;
     
     try {
       const { data, error } = await supabase
         .from('comments')
         .insert({
           post_id: post.id,
-          user_id: user.id,
+          user_id: user!.id,
           content: commentText.trim()
         })
         .select(`
@@ -143,8 +153,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
   };
   
   const handleShare = () => {
-    if (!user) {
-      navigate('/auth');
+    if (!isAuthenticated) {
+      toast({
+        title: "需要登录",
+        description: "请先登录后再分享",
+        variant: "destructive"
+      });
+      navigate('/auth', { state: { from: { pathname: `/community/post/${post.id}` } } });
       return;
     }
     toast({ description: "分享功能开发中" });
