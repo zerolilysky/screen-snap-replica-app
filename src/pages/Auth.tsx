@@ -1,62 +1,60 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import StatusBar from '@/components/StatusBar';
 
 const Auth: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signIn, signUp, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // If user is already authenticated, redirect to profile
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/profile';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setError(null);
     setLoading(true);
     
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        
-        if (error) throw error;
-        
+        await signIn(email, password);
         navigate('/profile');
-        toast({
-          title: '登录成功',
-          description: '欢迎回来！',
-        });
       } else {
-        const { error } = await supabase.auth.signUp({ 
-          email, 
-          password,
-          options: {
-            data: {
-              nickname: nickname
-            }
-          }
+        if (!nickname.trim()) {
+          throw new Error('请输入昵称');
+        }
+        
+        await signUp(email, password, {
+          nickname: nickname
         });
         
-        if (error) throw error;
-        
-        toast({
-          title: '注册成功',
-          description: '请验证您的邮箱',
-        });
+        // After successful registration, switch to login mode
         setMode('login');
       }
     } catch (error: any) {
-      toast({
-        title: '错误',
-        description: error.message || '认证失败',
-        variant: 'destructive',
-      });
+      console.error('Auth error:', error);
+      setError(error.message || '认证失败，请重试');
     } finally {
       setLoading(false);
     }
@@ -64,7 +62,7 @@ const Auth: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <StatusBar time="20:21" />
+      <StatusBar />
 
       <div className="p-4">
         <button onClick={() => navigate(-1)} className="text-gray-700">
@@ -81,6 +79,12 @@ const Auth: React.FC = () => {
             {mode === 'login' ? '登录您的Nico账号' : '加入Nico社区'}
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-500 text-sm">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleAuth} className="space-y-6">
           {mode === 'register' && (
@@ -115,13 +119,20 @@ const Auth: React.FC = () => {
             <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
             <Input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="密码"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="pl-10 py-6 bg-gray-50"
+              className="pl-10 pr-10 py-6 bg-gray-50"
             />
+            <button 
+              type="button" 
+              onClick={togglePasswordVisibility}
+              className="absolute right-3 top-3 text-gray-400"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <Button
@@ -136,7 +147,10 @@ const Auth: React.FC = () => {
         <div className="text-center mt-6">
           <button
             type="button"
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            onClick={() => {
+              setMode(mode === 'login' ? 'register' : 'login');
+              setError(null);
+            }}
             className="text-red-500"
           >
             {mode === 'login' ? '没有账号？立即注册' : '已有账号？立即登录'}

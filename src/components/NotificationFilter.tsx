@@ -2,23 +2,20 @@
 import React from 'react';
 import { UserPlus, MessageSquare, AtSign, Heart } from 'lucide-react';
 
-interface FilterProps {
-  text: string;
-  isActive?: boolean;
+interface FilterItemProps {
   icon: React.ReactNode;
+  label: string;
+  color: string;
   onClick: () => void;
 }
 
-const Filter: React.FC<FilterProps> = ({ text, icon, isActive = false, onClick }) => {
+const FilterItem: React.FC<FilterItemProps> = ({ icon, label, color, onClick }) => {
   return (
-    <div 
-      className={`flex flex-col items-center ${isActive ? 'text-black' : 'text-gray-400'} cursor-pointer`}
-      onClick={onClick}
-    >
-      <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isActive ? 'bg-purple-100' : 'bg-gray-100'}`}>
+    <div className="flex flex-col items-center space-y-1" onClick={onClick}>
+      <div className={`w-16 h-16 rounded-full ${color} flex items-center justify-center`}>
         {icon}
       </div>
-      <span className="text-xs mt-1">{text}</span>
+      <span className="text-xs">{label}</span>
     </div>
   );
 };
@@ -29,25 +26,29 @@ interface NotificationFilterProps {
 
 const NotificationFilter: React.FC<NotificationFilterProps> = ({ onFilterClick }) => {
   return (
-    <div className="flex justify-around p-4">
-      <Filter
-        text="新朋友"
-        icon={<UserPlus className="w-6 h-6" />}
+    <div className="flex justify-between px-4 py-5">
+      <FilterItem
+        icon={<UserPlus size={24} className="text-indigo-500" />}
+        label="新朋友"
+        color="bg-indigo-100"
         onClick={() => onFilterClick('friends')}
       />
-      <Filter
-        text="评论"
-        icon={<MessageSquare className="w-6 h-6" />}
+      <FilterItem
+        icon={<MessageSquare size={24} className="text-amber-500" />}
+        label="评论"
+        color="bg-amber-100"
         onClick={() => onFilterClick('comments')}
       />
-      <Filter
-        text="@我的"
-        icon={<AtSign className="w-6 h-6" />}
+      <FilterItem
+        icon={<AtSign size={24} className="text-cyan-500" />}
+        label="@我的"
+        color="bg-cyan-100"
         onClick={() => onFilterClick('mentions')}
       />
-      <Filter
-        text="赞"
-        icon={<Heart className="w-6 h-6" />}
+      <FilterItem
+        icon={<Heart size={24} className="text-red-500" />}
+        label="赞"
+        color="bg-red-100"
         onClick={() => onFilterClick('likes')}
       />
     </div>

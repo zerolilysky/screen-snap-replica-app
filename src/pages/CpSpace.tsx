@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
@@ -23,7 +24,7 @@ const CpSpace: React.FC = () => {
   const fetchCouples = async () => {
     setLoading(true);
     try {
-      // Use profiles(columnName) format to explicitly select fields
+      // Use explicit column reference format for reliable TypeScript types
       const { data, error } = await supabase
         .from('couples')
         .select(`
@@ -31,9 +32,9 @@ const CpSpace: React.FC = () => {
           name,
           created_at,
           user1_id,
-          profiles!couples_user1_id_fkey(id, nickname, avatar),
+          profiles:profiles!couples_user1_id_fkey(id, nickname, avatar),
           user2_id,
-          profiles!couples_user2_id_fkey(id, nickname, avatar)
+          profiles:profiles!couples_user2_id_fkey(id, nickname, avatar)
         `)
         .order('created_at', { ascending: false })
         .limit(20);
