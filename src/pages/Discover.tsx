@@ -7,6 +7,7 @@ import ArticleCard from '../components/ArticleCard';
 import ConceptCard from '../components/ConceptCard';
 import TopicGroup from '../components/TopicGroup';
 import Couples from '../components/Couples';
+import { Button } from '@/components/ui/button';
 import { articles, concepts, couples, trends } from '../data/mockData';
 
 const Discover: React.FC = () => {
@@ -105,15 +106,15 @@ const Discover: React.FC = () => {
               <span className="text-xs text-purple-600">查看全部</span>
             </div>
             
-            <div className="flex space-x-3">
-              <div className="flex items-center bg-white rounded-full px-3 py-2 shadow-sm">
+            <div className="flex overflow-x-auto space-x-3 pb-2">
+              <div className="flex items-center bg-white rounded-full px-3 py-2 shadow-sm flex-shrink-0">
                 <img src="/placeholder.svg" alt="用户1" className="h-8 w-8 rounded-full" />
                 <span className="mx-2 text-pink-500">❤</span>
                 <img src="/placeholder.svg" alt="用户2" className="h-8 w-8 rounded-full" />
                 <span className="ml-2 text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">94%匹配</span>
               </div>
               
-              <div className="flex items-center bg-white rounded-full px-3 py-2 shadow-sm">
+              <div className="flex items-center bg-white rounded-full px-3 py-2 shadow-sm flex-shrink-0">
                 <img src="/placeholder.svg" alt="用户3" className="h-8 w-8 rounded-full" />
                 <span className="mx-2 text-pink-500">❤</span>
                 <img src="/placeholder.svg" alt="用户4" className="h-8 w-8 rounded-full" />
@@ -157,11 +158,13 @@ const Discover: React.FC = () => {
         
         <div className="grid grid-cols-2 gap-4 px-4">
           {concepts.map(concept => (
-            <ConceptCard 
-              key={concept.id} 
-              concept={concept} 
+            <div 
+              key={concept.id}
               onClick={() => navigate(`/discover/concept/${concept.id}`)}
-            />
+              className="cursor-pointer"
+            >
+              <ConceptCard concept={concept} />
+            </div>
           ))}
         </div>
       </section>

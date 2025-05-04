@@ -117,13 +117,13 @@ const Messages: React.FC = () => {
                     onClick={() => handleUserClick(message.sender_id)}
                   />
                 ))}
-                {/* Sample messages for illustration */}
                 <UserMessage 
                   avatar="/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png"
                   name="Mimi"
                   message="很高兴认识你！"
                   time="12:30"
                   onClick={() => handleUserClick('mimi123')}
+                  isOnline={true}
                 />
                 <UserMessage 
                   avatar="/lovable-uploads/710f54bf-505f-4047-86f9-23670f5034fb.png"
@@ -138,6 +138,7 @@ const Messages: React.FC = () => {
                   message="有空聊聊吗？"
                   time="周一"
                   onClick={() => handleUserClick('xiaoli789')}
+                  unreadCount={2}
                 />
               </div>
             ) : (
