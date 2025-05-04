@@ -9,9 +9,9 @@ const TabBar: React.FC = () => {
   
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-between items-center px-4 py-2">
-      <Link to="/match" className="flex flex-col items-center">
-        <Heart className={`w-6 h-6 ${path === '/match' ? 'text-black' : 'text-gray-400'}`} />
-        <span className={`text-xs ${path === '/match' ? 'text-black' : 'text-gray-400'}`}>交友</span>
+      <Link to="/friends" className="flex flex-col items-center">
+        <Heart className={`w-6 h-6 ${path === '/friends' ? 'text-black' : 'text-gray-400'}`} />
+        <span className={`text-xs ${path === '/friends' ? 'text-black' : 'text-gray-400'}`}>交友</span>
       </Link>
       
       <Link to="/messages" className="flex flex-col items-center">
