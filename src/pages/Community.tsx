@@ -38,6 +38,10 @@ const Community: React.FC = () => {
     };
   }, []);
   
+  const handlePostClick = (postId: string) => {
+    navigate(`/post/${postId}`);
+  };
+  
   const handleNewPost = async (newPost: any) => {
     try {
       // Fetch the complete post with author information
@@ -217,7 +221,9 @@ const Community: React.FC = () => {
             <div className="flex-1">
               {posts.length > 0 ? (
                 posts.map(post => (
-                  <PostCard key={post.id} post={post} isInteractive={true} />
+                  <div key={post.id} onClick={() => handlePostClick(post.id)}>
+                    <PostCard post={post} isInteractive={true} />
+                  </div>
                 ))
               ) : (
                 <EmptyState 

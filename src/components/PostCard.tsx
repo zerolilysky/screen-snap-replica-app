@@ -5,6 +5,7 @@ import UserAvatar from './UserAvatar';
 import { cn } from '../lib/utils';
 import { formatDate } from '../lib/utils';
 import { Heart, MessageSquare, Share2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface PostCardProps {
   post: Post;
@@ -13,6 +14,7 @@ interface PostCardProps {
 }
 
 const PostCard: React.FC<PostCardProps> = ({ post, className, isInteractive = false }) => {
+  const navigate = useNavigate();
   // Get the user data from either post.user or post.author
   const userData = post.user || post.author;
   
@@ -20,6 +22,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, className, isInteractive = fa
     console.error("Post is missing user/author data:", post);
     return null;
   }
+
+  const handleCommentClick = () => {
+    navigate(`/post/${post.id}`);
+  };
   
   const renderVerificationBadges = () => {
     return (
@@ -117,7 +123,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, className, isInteractive = fa
           <Heart className="h-5 w-5" />
           <span className="ml-1 text-sm">{post.likes}</span>
         </div>
-        <div className="flex items-center text-gray-500">
+        <div className="flex items-center text-gray-500" onClick={handleCommentClick}>
           <MessageSquare className="h-5 w-5" />
           <span className="ml-1 text-sm">{post.comments}</span>
         </div>

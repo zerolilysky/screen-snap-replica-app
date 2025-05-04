@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,50 +30,52 @@ import Chat from "./pages/Chat";
 import DiscussionTopic from "./pages/DiscussionTopic";
 import Concepts from "./pages/Concepts";
 import ConceptDetail from "./pages/ConceptDetail";
-import PostDetail from "./pages/PostDetail";
+import PostDetail from './pages/PostDetail';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/match" element={<Match />} />
-            <Route path="/friends" element={<Friends />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/messages/:type" element={<MessageDetail />} />
-            <Route path="/chat/:id" element={<Chat />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/community/post" element={<CreatePost />} />
-            <Route path="/community/post/:id" element={<PostDetail />} />
-            <Route path="/discover" element={<Discover />} />
-            <Route path="/discover/discussions" element={<DiscussionTopic />} />
-            <Route path="/discover/discussion/:id" element={<DiscussionTopic />} />
-            <Route path="/discover/concepts" element={<Concepts />} />
-            <Route path="/discover/concept/:id" element={<ConceptDetail />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/views" element={<ProfileViews />} />
-            <Route path="/profile/posts" element={<UserPosts />} />
-            <Route path="/profile/customization" element={<Customization />} />
-            <Route path="/profile/wallet" element={<Wallet />} />
-            <Route path="/profile/leaderboard" element={<Leaderboard />} />
-            <Route path="/profile/cp-space" element={<CpSpace />} />
-            <Route path="/personality-test" element={<PersonalityTest />} />
-            <Route path="/match/:type" element={<MatchDetail />} />
-            <Route path="/user/:id" element={<UserProfile />} />
-            <Route path="/auth" element={<Auth />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/match" element={<Match />} />
+              <Route path="/friends" element={<Friends />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/messages/:type" element={<MessageDetail />} />
+              <Route path="/chat/:id" element={<Chat />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/community/post" element={<CreatePost />} />
+              <Route path="/community/post/:id" element={<PostDetail />} />
+              <Route path="/discover" element={<Discover />} />
+              <Route path="/discover/discussions" element={<DiscussionTopic />} />
+              <Route path="/discover/discussion/:id" element={<DiscussionTopic />} />
+              <Route path="/discover/concepts" element={<Concepts />} />
+              <Route path="/discover/concept/:id" element={<ConceptDetail />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/views" element={<ProfileViews />} />
+              <Route path="/profile/posts" element={<UserPosts />} />
+              <Route path="/profile/customization" element={<Customization />} />
+              <Route path="/profile/wallet" element={<Wallet />} />
+              <Route path="/profile/leaderboard" element={<Leaderboard />} />
+              <Route path="/profile/cp-space" element={<CpSpace />} />
+              <Route path="/personality-test" element={<PersonalityTest />} />
+              <Route path="/match/:type" element={<MatchDetail />} />
+              <Route path="/user/:id" element={<UserProfile />} />
+              <Route path="/auth" element={<Auth />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
