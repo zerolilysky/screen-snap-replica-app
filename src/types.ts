@@ -1,21 +1,40 @@
 
-export interface User {
+export interface Topic {
   id: string;
-  name: string;
-  avatar: string;
-  gender: 'male' | 'female';
-  age?: number;
-  distance?: string;
-  location?: string;
-  online?: boolean;
-  verified?: boolean;
-  profileCompleted?: boolean;
+  title: string;
+  icon?: string;
+  color?: string;
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  date: string;
+  image?: string;
+  tags?: string[];
+}
+
+export interface Concept {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  tags?: string[];
 }
 
 export interface Post {
   id: string;
   content: string;
-  author: User;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+    location?: string;
+    gender: 'male' | 'female' | 'unknown';
+    verified?: boolean;
+  };
   likes: number;
   comments: number;
   time: string;
@@ -23,33 +42,26 @@ export interface Post {
   tags?: string[];
 }
 
-export interface Topic {
+export interface MatchOption {
   id: string;
   title: string;
-  participants: number;
-  icon?: string;
-  timeRange?: string;
+  icon: string;
+  color: string;
+  description: string;
 }
 
 export interface Couple {
   id: string;
-  leftUser: string;
-  rightUser: string;
-  imageLeft: string;
-  imageRight: string;
-}
-
-export interface Article {
-  id: string;
-  title: string;
-  image: string;
-  likes: number;
-  comments: number;
-  date: string;
-}
-
-export interface Concept {
-  id: string;
-  title: string;
-  description: string;
+  name: string;
+  created_at: string;
+  user1: {
+    id: string;
+    nickname: string;
+    avatar: string;
+  };
+  user2: {
+    id: string;
+    nickname: string;
+    avatar: string;
+  };
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
@@ -21,6 +20,21 @@ const Messages: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchMessages();
+      
+      // Subscribe to new messages
+      const channel = supabase
+        .channel('messages-updates')
+        .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, 
+          () => {
+            fetchMessages();
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -29,40 +43,79 @@ const Messages: React.FC = () => {
     
     setLoading(true);
     try {
-      // Get distinct users who have sent messages to the current user
-      const { data, error } = await supabase
+      // Get distinct conversations with the latest message first
+      const { data: senders, error: sendersError } = await supabase
         .from('messages')
         .select(`
-          id,
-          content,
-          created_at,
-          sender_id,
-          profiles:sender_id(nickname, avatar)
+          distinct on (sender_id) *,
+          profiles:sender_id (nickname, avatar)
         `)
         .eq('receiver_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+        .order('sender_id', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (sendersError) throw sendersError;
       
-      if (error) throw error;
+      // Get messages sent by the current user (as latest message in each conversation)
+      const { data: receivers, error: receiversError } = await supabase
+        .from('messages')
+        .select(`
+          distinct on (receiver_id) *,
+          profiles:receiver_id (nickname, avatar)
+        `)
+        .eq('sender_id', user.id)
+        .order('receiver_id', { ascending: true })
+        .order('created_at', { ascending: false });
+        
+      if (receiversError) throw receiversError;
       
-      // Group messages by sender
-      const uniqueSenders = data.reduce((acc: any[], message: any) => {
-        const existingSender = acc.find(m => m.sender_id === message.sender_id);
-        if (!existingSender) {
-          acc.push({
-            id: message.id,
-            sender_id: message.sender_id,
-            content: message.content,
-            created_at: message.created_at,
-            profile: message.profiles
-          });
+      // Combine and format all messages
+      const formattedSenders = senders.map(message => ({
+        id: message.id,
+        partner_id: message.sender_id,
+        content: message.content,
+        created_at: message.created_at,
+        name: message.profiles.nickname,
+        avatar: message.profiles.avatar,
+        read: message.read || false,
+        is_sender: false
+      }));
+      
+      const formattedReceivers = receivers.map(message => ({
+        id: message.id,
+        partner_id: message.receiver_id,
+        content: message.content,
+        created_at: message.created_at,
+        name: message.profiles.nickname,
+        avatar: message.profiles.avatar,
+        read: true, // Messages sent by the user are always read
+        is_sender: true
+      }));
+      
+      // Merge conversations and sort by latest message
+      const allConversations = [...formattedSenders, ...formattedReceivers];
+      const uniqueConversations = allConversations.reduce((acc, current) => {
+        const isDuplicate = acc.find(item => item.partner_id === current.partner_id);
+        if (!isDuplicate) {
+          return [...acc, current];
+        } else {
+          // If duplicate exists, keep the one with the newest message
+          const duplicateIndex = acc.findIndex(item => item.partner_id === current.partner_id);
+          const existing = acc[duplicateIndex];
+          const newerMessage = new Date(current.created_at) > new Date(existing.created_at) ? current : existing;
+          acc[duplicateIndex] = newerMessage;
+          return acc;
         }
-        return acc;
       }, []);
       
-      setMessages(uniqueSenders);
+      // Sort all conversations by most recent message
+      const sortedConversations = uniqueConversations.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      
+      setMessages(sortedConversations);
     } catch (error: any) {
-      console.error('Error fetching messages:', error.message);
+      console.error('获取消息错误:', error.message);
       toast({
         title: "获取消息失败",
         description: error.message,
@@ -79,6 +132,24 @@ const Messages: React.FC = () => {
 
   const handleUserClick = (userId: string) => {
     navigate(`/chat/${userId}`);
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) {
+      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    } else if (days === 1) {
+      return '昨天';
+    } else if (days < 7) {
+      const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      return weekdays[date.getDay()];
+    } else {
+      return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+    }
   };
 
   return (
@@ -110,11 +181,13 @@ const Messages: React.FC = () => {
                 {messages.map(message => (
                   <UserMessage
                     key={message.id}
-                    avatar={message.profile.avatar}
-                    name={message.profile.nickname}
-                    message={message.content}
-                    time={new Date(message.created_at).toLocaleDateString()}
-                    onClick={() => handleUserClick(message.sender_id)}
+                    avatar={message.avatar || "/placeholder.svg"}
+                    name={message.name}
+                    message={message.is_sender ? `你: ${message.content}` : message.content}
+                    time={formatTime(message.created_at)}
+                    onClick={() => handleUserClick(message.partner_id)}
+                    isOnline={Math.random() > 0.5} // Random online status for demo
+                    unreadCount={!message.read && !message.is_sender ? 1 : 0}
                   />
                 ))}
                 <UserMessage 

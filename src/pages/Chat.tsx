@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Image, Smile } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ interface Message {
   sender_id: string;
   receiver_id: string;
   created_at: string;
+  image_url?: string | null;
 }
 
 interface Profile {
@@ -30,6 +31,7 @@ const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [inputActive, setInputActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -181,6 +183,17 @@ const Chat: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
   
   if (!user) {
     return null; // Redirecting to auth
@@ -202,6 +215,12 @@ const Chat: React.FC = () => {
           />
           <span className="ml-3 font-medium">{profile?.nickname || "用户"}</span>
         </div>
+        <div className="flex-1"></div>
+        <button className="text-gray-500">
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+          </svg>
+        </button>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -216,64 +235,102 @@ const Chat: React.FC = () => {
                 开始和{profile?.nickname || "对方"}的对话吧
               </div>
             ) : (
-              messages.map(message => (
-                <div 
-                  key={message.id}
-                  className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-                >
-                  {message.sender_id !== user.id && (
-                    <img 
-                      src={profile?.avatar || "/placeholder.svg"}
-                      alt={profile?.nickname || "用户"}
-                      className="h-8 w-8 rounded-full mr-2 self-end"
-                    />
-                  )}
-                  
-                  <div 
-                    className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                      message.sender_id === user.id 
-                        ? 'bg-blue-500 text-white rounded-br-none' 
-                        : 'bg-white text-gray-800 rounded-bl-none'
-                    }`}
-                  >
-                    <p>{message.content}</p>
-                    <div 
-                      className={`text-xs mt-1 ${
-                        message.sender_id === user.id ? 'text-blue-100' : 'text-gray-500'
-                      }`}
-                    >
-                      {new Date(message.created_at).toLocaleTimeString('zh-CN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </div>
+              <>
+                {messages.length > 0 && (
+                  <div className="text-center text-xs text-gray-500 my-2">
+                    {formatDate(messages[0].created_at)}
                   </div>
+                )}
+                
+                {messages.map((message, index) => {
+                  // Check if we need to show date separator
+                  const showDateSeparator = index > 0 && (
+                    new Date(message.created_at).toDateString() !==
+                    new Date(messages[index - 1].created_at).toDateString()
+                  );
                   
-                  {message.sender_id === user.id && (
-                    <div className="w-8"></div> // Spacer for alignment
-                  )}
-                </div>
-              ))
+                  return (
+                    <React.Fragment key={message.id}>
+                      {showDateSeparator && (
+                        <div className="text-center text-xs text-gray-500 my-2">
+                          {formatDate(message.created_at)}
+                        </div>
+                      )}
+                      
+                      <div 
+                        className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        {message.sender_id !== user.id && (
+                          <img 
+                            src={profile?.avatar || "/placeholder.svg"}
+                            alt={profile?.nickname || "用户"}
+                            className="h-8 w-8 rounded-full mr-2 self-end"
+                          />
+                        )}
+                        
+                        <div 
+                          className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                            message.sender_id === user.id 
+                              ? 'bg-blue-500 text-white rounded-br-none' 
+                              : 'bg-white text-gray-800 rounded-bl-none'
+                          }`}
+                        >
+                          <p>{message.content}</p>
+                          {message.image_url && (
+                            <img 
+                              src={message.image_url} 
+                              alt="消息图片" 
+                              className="mt-2 rounded-lg max-w-full" 
+                            />
+                          )}
+                          <div 
+                            className={`text-xs mt-1 ${
+                              message.sender_id === user.id ? 'text-blue-100' : 'text-gray-500'
+                            }`}
+                          >
+                            {new Date(message.created_at).toLocaleTimeString('zh-CN', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                        
+                        {message.sender_id === user.id && (
+                          <div className="w-8"></div> // Spacer for alignment
+                        )}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </>
             )}
             <div ref={messagesEndRef} />
           </>
         )}
       </div>
       
-      <div className="bg-white p-4 border-t border-gray-100">
+      <div className={`bg-white p-4 border-t border-gray-100 ${inputActive ? 'pb-6' : ''}`}>
         <div className="flex items-center">
+          <button className="p-2 mr-2 text-gray-500">
+            <Image size={20} />
+          </button>
           <input
             type="text"
             className="flex-1 bg-gray-100 border-0 rounded-full py-3 px-4 focus:ring-2 focus:ring-blue-500 focus:bg-white"
             placeholder="输入消息..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onFocus={() => setInputActive(true)}
+            onBlur={() => setInputActive(false)}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 sendMessage();
               }
             }}
           />
+          <button className="p-2 ml-2 text-gray-500">
+            <Smile size={20} />
+          </button>
           <Button 
             onClick={sendMessage}
             className="ml-2 rounded-full h-10 w-10 p-0 flex items-center justify-center"

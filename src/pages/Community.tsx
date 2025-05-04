@@ -155,7 +155,7 @@ const Community: React.FC = () => {
             name: post.profiles.nickname,
             avatar: post.profiles.avatar,
             location: post.profiles.location,
-            gender: 'unknown', // Default value
+            gender: 'unknown' as 'unknown', // Type assertion
           },
           likes: likeCount || 0,
           comments: commentCount || 0,
@@ -170,7 +170,7 @@ const Community: React.FC = () => {
         };
       }));
       
-      setPosts(postsWithDetails);
+      setPosts(postsWithDetails as Post[]);
     } catch (error: any) {
       console.error('获取帖子错误:', error.message);
       toast({

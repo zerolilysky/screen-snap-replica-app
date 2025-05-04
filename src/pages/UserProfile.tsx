@@ -95,14 +95,44 @@ const UserProfile: React.FC = () => {
     setIsFollowing(false);
   };
   
-  const handleChat = () => {
+  const handleChat = async () => {
     if (!user) {
       navigate('/auth');
       return;
     }
     
     if (id) {
-      navigate(`/chat/${id}`);
+      try {
+        // Create initial message if there's no conversation yet
+        const { data: existingMessages, error: checkError } = await supabase
+          .from('messages')
+          .select('id')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${user.id})`)
+          .limit(1);
+          
+        if (checkError) throw checkError;
+        
+        if (!existingMessages || existingMessages.length === 0) {
+          // Send welcome message
+          await supabase
+            .from('messages')
+            .insert({
+              sender_id: user.id,
+              receiver_id: id,
+              content: "你好，很高兴认识你！",
+            });
+        }
+        
+        // Navigate to chat
+        navigate(`/chat/${id}`);
+      } catch (error) {
+        console.error('启动聊天错误:', error);
+        toast({
+          title: "启动聊天失败",
+          description: "无法开始聊天，请稍后再试",
+          variant: "destructive"
+        });
+      }
     }
   };
   

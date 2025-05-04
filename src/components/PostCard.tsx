@@ -221,7 +221,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
                 onClick={handleComment}
               >
                 <MessageSquare className="h-5 w-5 mr-1" />
-                <span>{post.comments}</span>
+                <span>{comments.length || post.comments}</span>
               </button>
               <button 
                 className="flex items-center text-gray-500" 
