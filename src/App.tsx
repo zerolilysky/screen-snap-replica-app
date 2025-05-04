@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -68,6 +69,8 @@ function App() {
               <Route path="/match/:type" element={<MatchDetail />} />
               <Route path="/user/:id" element={<UserProfile />} />
               <Route path="/auth" element={<Auth />} />
+              {/* Add a specific route for post details */}
+              <Route path="/post/:id" element={<PostDetail />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

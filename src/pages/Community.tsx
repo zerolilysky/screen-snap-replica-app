@@ -39,6 +39,7 @@ const Community: React.FC = () => {
   }, []);
   
   const handlePostClick = (postId: string) => {
+    // Update to navigate to correct post detail path
     navigate(`/post/${postId}`);
   };
   

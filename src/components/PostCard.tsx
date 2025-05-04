@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Post } from '../types';
 import UserAvatar from './UserAvatar';
@@ -24,6 +23,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, className, isInteractive = fa
   }
 
   const handleCommentClick = () => {
+    // Navigate to the correct path: /post/:id instead of /post/:id
     navigate(`/post/${post.id}`);
   };
   
