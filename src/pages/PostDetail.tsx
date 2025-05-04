@@ -1,73 +1,49 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
-import { ArrowLeft, Heart, MessageSquare, Share2, Send, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import UserAvatar from '../components/UserAvatar';
+import { ArrowLeft, MessageSquare, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { Post } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import PostCard from '../components/PostCard';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    nickname: string;
+    avatar: string;
+  };
+}
 
 const PostDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [post, setPost] = useState<Post | null>(null);
+  const { toast } = useToast();
+  
+  const [post, setPost] = useState<any | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
-  const [comments, setComments] = useState<any[]>([]);
-  const [commentText, setCommentText] = useState('');
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const commentInputRef = useRef<HTMLInputElement>(null);
-
+  const [loadingComments, setLoadingComments] = useState(true);
+  
   useEffect(() => {
     if (id) {
-      fetchPostWithComments();
-      
-      // Setup realtime subscription for new comments
-      const channel = supabase
-        .channel('public:comments')
-        .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'comments', filter: `post_id=eq.${id}` }, 
-          handleNewComment
-        )
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      fetchPost();
+      fetchComments();
     }
   }, [id]);
-  
-  const handleNewComment = async (payload: any) => {
-    console.log('New comment received:', payload);
-    try {
-      // Fetch the complete comment with user information
-      const { data: commentData, error: commentError } = await supabase
-        .from('comments')
-        .select(`
-          *,
-          profiles:user_id (nickname, avatar)
-        `)
-        .eq('id', payload.new.id)
-        .single();
-      
-      if (commentError) throw commentError;
-      
-      setComments(prev => [...prev, commentData]);
-    } catch (error) {
-      console.error('处理新评论错误:', error);
-    }
-  };
 
-  const fetchPostWithComments = async () => {
+  const fetchPost = async () => {
     setLoading(true);
     try {
-      // Get post data
-      const { data: postData, error: postError } = await supabase
+      // This is a mockup - adapt based on your actual data structure
+      const { data, error } = await supabase
         .from('posts')
         .select(`
           *,
@@ -75,89 +51,42 @@ const PostDetail: React.FC = () => {
         `)
         .eq('id', id)
         .single();
-      
-      if (postError) throw postError;
-      
-      // Get like count
-      const { count: likeCount, error: likeError } = await supabase
-        .from('likes')
-        .select('*', { count: 'exact' })
-        .eq('post_id', id);
         
-      if (likeError) throw likeError;
+      if (error) throw error;
       
-      // Check if user has liked this post
-      if (user) {
-        const { data: userLike, error: userLikeError } = await supabase
-          .from('likes')
-          .select('*')
-          .eq('post_id', id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (!userLikeError) {
-          setLiked(!!userLike);
-        }
+      if (data) {
+        // Format post data to match the structure expected by PostCard
+        const formattedPost = {
+          id: data.id,
+          content: data.content,
+          image: data.image_url,
+          likes: 0, // You would need to count actual likes
+          comments: 0, // Will be updated with actual comments count
+          time: new Date(data.created_at).toLocaleDateString(),
+          author: {
+            id: data.profiles.id,
+            name: data.profiles.nickname,
+            avatar: data.profiles.avatar || '/placeholder.svg',
+            location: data.profiles.location
+          },
+          tags: [] // Add logic to fetch tags if needed
+        };
+        setPost(formattedPost);
       }
-      
-      // Get post images
-      const { data: imageData, error: imageError } = await supabase
-        .from('post_images')
-        .select('*')
-        .eq('post_id', id);
-        
-      if (imageError) throw imageError;
-      
-      // Get post tags
-      const { data: tagData, error: tagError } = await supabase
-        .from('post_tags')
-        .select('*')
-        .eq('post_id', id);
-        
-      if (tagError) throw tagError;
-      
-      // Format post
-      const formattedPost: Post = {
-        id: postData.id,
-        content: postData.content,
-        author: {
-          id: postData.profiles.id,
-          name: postData.profiles.nickname,
-          avatar: postData.profiles.avatar,
-          location: postData.profiles.location,
-          gender: 'unknown'
-        },
-        likes: likeCount || 0,
-        comments: 0,
-        time: new Date(postData.created_at).toLocaleString('zh-CN', {
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        image: imageData?.[0]?.image_url,
-        tags: tagData?.map(tag => tag.tag) || [],
-      };
-      
-      setPost(formattedPost);
-      setLikeCount(likeCount || 0);
-      
-      // Get comments
-      await fetchComments();
-    } catch (error: any) {
-      console.error('获取帖子详情错误:', error.message);
+    } catch (error) {
+      console.error('Error fetching post:', error);
       toast({
-        title: "获取帖子详情失败",
-        description: error.message,
+        title: "获取帖子失败",
+        description: "无法加载帖子详情",
         variant: "destructive"
       });
-      navigate('/community');
     } finally {
       setLoading(false);
     }
   };
-  
+
   const fetchComments = async () => {
+    setLoadingComments(true);
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -171,87 +100,43 @@ const PostDetail: React.FC = () => {
       if (error) throw error;
       
       setComments(data || []);
-    } catch (error: any) {
-      console.error('获取评论错误:', error.message);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
       toast({
         title: "获取评论失败",
-        description: error.message,
+        description: "无法加载评论",
         variant: "destructive"
       });
+    } finally {
+      setLoadingComments(false);
     }
   };
-  
-  const handleLike = async () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
-    if (!liked) {
-      try {
-        const { error } = await supabase
-          .from('likes')
-          .insert({ user_id: user.id, post_id: id });
-          
-        if (error) throw error;
-        
-        setLiked(true);
-        setLikeCount(prevCount => prevCount + 1);
-        toast({ description: "点赞成功" });
-      } catch (error) {
-        console.error("点赞错误:", error);
-        toast({ 
-          title: "操作失败", 
-          description: "无法点赞，请稍后再试", 
-          variant: "destructive" 
-        });
-      }
-    } else {
-      try {
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('post_id', id);
-          
-        if (error) throw error;
-        
-        setLiked(false);
-        setLikeCount(prevCount => Math.max(0, prevCount - 1));
-      } catch (error) {
-        console.error("取消点赞错误:", error);
-      }
-    }
-  };
-  
-  const handleShare = () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    toast({ description: "分享功能开发中" });
-  };
-  
+
   const submitComment = async () => {
-    if (!commentText.trim() || !user) {
-      if (!user) navigate('/auth');
-      return;
-    }
+    if (!newComment.trim() || !user || !id) return;
     
-    setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('comments')
         .insert({
           post_id: id,
           user_id: user.id,
-          content: commentText.trim()
-        });
+          content: newComment.trim()
+        })
+        .select(`
+          *,
+          profiles:user_id (nickname, avatar)
+        `)
+        .single();
         
       if (error) throw error;
       
+      // Update comments list
+      setComments(prev => [...prev, data]);
+      
       // Clear input
-      setCommentText('');
+      setNewComment('');
+      
       toast({ description: "评论成功" });
     } catch (error: any) {
       console.error('提交评论错误:', error.message);
@@ -260,175 +145,117 @@ const PostDetail: React.FC = () => {
         description: error.message,
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleUserClick = () => {
-    if (post) {
-      navigate(`/user/${post.author.id}`);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-2 border-gray-500 rounded-full border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  if (!post) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
-        <div className="text-red-500 text-xl mb-4">帖子不存在</div>
-        <Button onClick={() => navigate('/community')}>返回社区</Button>
-      </div>
-    );
-  }
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <StatusBar />
       
-      <div className="p-4 bg-white border-b border-gray-100 flex justify-between items-center">
-        <button onClick={() => navigate(-1)}>
+      <div className="bg-white p-4 flex items-center border-b border-gray-100 sticky top-0 z-10">
+        <button onClick={() => navigate(-1)} className="mr-3">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-lg font-medium">帖子详情</h1>
-        <div className="w-6"></div>
+        <h1 className="font-medium">帖子详情</h1>
       </div>
       
-      <div className="bg-white mb-2">
-        <div className="border-b border-gray-100 p-4">
-          <div className="flex items-start">
-            <div onClick={handleUserClick} className="cursor-pointer">
-              <UserAvatar src={post.author.avatar} />
+      {loading ? (
+        <div className="flex justify-center items-center p-10">
+          <div className="animate-spin h-8 w-8 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+        </div>
+      ) : post ? (
+        <>
+          <div className="bg-white mb-2">
+            <PostCard post={post} isInteractive={false} />
+          </div>
+          
+          <div className="bg-white p-4 border-t border-b border-gray-100">
+            <div className="flex items-center">
+              <MessageSquare size={18} className="text-gray-500" />
+              <span className="ml-2 font-medium">评论 ({comments.length})</span>
             </div>
-            <div className="ml-3 flex-1">
-              <div className="flex items-center">
-                <h3 className="font-medium cursor-pointer" onClick={handleUserClick}>
-                  {post.author.name}
-                </h3>
-                {post.author.verified && (
-                  <span className="ml-1 text-blue-500 text-sm">✓</span>
-                )}
+          </div>
+          
+          <ScrollArea className="flex-1 bg-white">
+            {loadingComments ? (
+              <div className="flex justify-center items-center p-10">
+                <div className="animate-spin h-6 w-6 border-2 border-gray-500 rounded-full border-t-transparent"></div>
               </div>
-              <div className="text-gray-500 text-xs flex items-center">
-                <span>{post.time}</span>
-                {post.author.location && (
-                  <>
-                    <span className="mx-1">·</span>
-                    <span>{post.author.location}</span>
-                  </>
-                )}
+            ) : comments.length > 0 ? (
+              <div className="p-4 space-y-4">
+                {comments.map((comment) => (
+                  <div key={comment.id} className="flex space-x-3">
+                    <img 
+                      src={comment.profiles.avatar || "/placeholder.svg"} 
+                      alt={comment.profiles.nickname} 
+                      className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-baseline">
+                        <h3 className="font-medium text-sm">{comment.profiles.nickname}</h3>
+                        <span className="ml-2 text-xs text-gray-500">{formatDate(comment.created_at)}</span>
+                      </div>
+                      <p className="text-sm mt-1">{comment.content}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <p className="mt-2">{post.content}</p>
-              
-              {post.image && (
-                <div className="mt-2 rounded-lg overflow-hidden">
-                  <img src={post.image} alt="Post" className="w-full h-auto" />
-                </div>
-              )}
-              
-              {post.tags && post.tags.length > 0 && (
-                <div className="mt-2 flex flex-wrap">
-                  {post.tags.map((tag, index) => (
-                    <span key={index} className="text-blue-500 text-sm mr-2">#{tag}</span>
-                  ))}
-                </div>
-              )}
-              
-              <div className="mt-3 flex justify-around">
-                <button 
-                  className="flex items-center text-gray-500" 
-                  onClick={handleLike}
-                >
-                  <Heart className={`h-5 w-5 mr-1 ${liked ? 'text-red-500 fill-red-500' : ''}`} />
-                  <span>{likeCount}</span>
-                </button>
-                <button 
-                  className="flex items-center text-gray-500" 
-                >
-                  <MessageSquare className="h-5 w-5 mr-1" />
-                  <span>{comments.length}</span>
-                </button>
-                <button 
-                  className="flex items-center text-gray-500" 
-                  onClick={handleShare}
-                >
-                  <Share2 className="h-5 w-5 mr-1" />
-                  <span>分享</span>
-                </button>
+            ) : (
+              <div className="text-center text-gray-500 py-10">
+                暂无评论，快来发表第一条吧
               </div>
+            )}
+          </ScrollArea>
+          
+          <div className="bg-white p-4 border-t border-gray-100 sticky bottom-0">
+            <div className="flex items-center">
+              <input
+                type="text"
+                className="flex-1 bg-gray-100 border-0 rounded-full py-3 px-4 focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                placeholder="添加评论..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    submitComment();
+                  }
+                }}
+              />
+              <Button 
+                onClick={submitComment}
+                className="ml-2 rounded-full h-10 w-10 p-0 flex items-center justify-center"
+                disabled={!newComment.trim() || !user}
+              >
+                <Send size={18} />
+              </Button>
             </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <p>帖子不存在或已被删除</p>
+            <Button 
+              variant="outline"
+              className="mt-4"
+              onClick={() => navigate('/community')}
+            >
+              返回社区
+            </Button>
           </div>
         </div>
-      </div>
-      
-      <div className="flex-1 bg-white">
-        <h4 className="px-4 py-2 font-medium text-lg border-b border-gray-100">评论 ({comments.length})</h4>
-        
-        {comments.length > 0 ? (
-          <div className="divide-y divide-gray-100">
-            {comments.map((comment) => (
-              <div key={comment.id} className="p-4">
-                <div className="flex">
-                  <img 
-                    src={comment.profiles?.avatar || "/placeholder.svg"} 
-                    alt={comment.profiles?.nickname} 
-                    className="h-8 w-8 rounded-full mr-3" 
-                  />
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <p className="font-medium text-sm">{comment.profiles?.nickname || "用户"}</p>
-                      <span className="text-xs text-gray-500">
-                        {new Date(comment.created_at).toLocaleString('zh-CN', { 
-                          month: 'numeric', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
-                    <p className="text-sm mt-1">{comment.content}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            暂无评论，快来发表第一条评论吧
-          </div>
-        )}
-      </div>
-      
-      <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex items-center">
-        <input
-          ref={commentInputRef}
-          type="text"
-          className="flex-1 border border-gray-300 rounded-full py-2 px-4 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="写评论..."
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              submitComment();
-            }
-          }}
-        />
-        <Button 
-          onClick={submitComment} 
-          className="ml-2 rounded-full p-2 h-auto" 
-          disabled={!commentText.trim() || isSubmitting}
-          size="sm"
-        >
-          <Send size={18} />
-        </Button>
-      </div>
+      )}
     </div>
   );
 };

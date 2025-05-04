@@ -5,8 +5,10 @@ import StatusBar from '../components/StatusBar';
 import { ArrowLeft, Send, Image, Smile } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import ChatMessage from '@/components/ChatMessage';
+import ChatDateSeparator from '@/components/ChatDateSeparator';
 
 interface Message {
   id: string;
@@ -33,6 +35,7 @@ const Chat: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [inputActive, setInputActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   useEffect(() => {
     if (!user) {
@@ -76,6 +79,8 @@ const Chat: React.FC = () => {
   
   const fetchProfile = async () => {
     try {
+      if (!id) return;
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('id, nickname, avatar')
@@ -119,6 +124,11 @@ const Chat: React.FC = () => {
       }
     } catch (error) {
       console.error('获取消息错误:', error);
+      toast({
+        title: "获取消息失败", 
+        description: "无法加载聊天记录",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -184,15 +194,12 @@ const Chat: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const shouldShowDateSeparator = (index: number) => {
+    if (index === 0) return true;
+    
+    const currentDate = new Date(messages[index].created_at).toDateString();
+    const prevDate = new Date(messages[index - 1].created_at).toDateString();
+    return currentDate !== prevDate;
   };
   
   if (!user) {
@@ -203,7 +210,7 @@ const Chat: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <StatusBar />
       
-      <div className="bg-white p-4 flex items-center border-b border-gray-100">
+      <div className="bg-white p-4 flex items-center border-b border-gray-100 sticky top-0 z-10">
         <button onClick={() => navigate(-1)} className="mr-3">
           <ArrowLeft size={24} />
         </button>
@@ -215,15 +222,9 @@ const Chat: React.FC = () => {
           />
           <span className="ml-3 font-medium">{profile?.nickname || "用户"}</span>
         </div>
-        <div className="flex-1"></div>
-        <button className="text-gray-500">
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-          </svg>
-        </button>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-gray-50">
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <div className="animate-spin h-8 w-8 border-2 border-gray-500 rounded-full border-t-transparent"></div>
@@ -231,77 +232,25 @@ const Chat: React.FC = () => {
         ) : (
           <>
             {messages.length === 0 ? (
-              <div className="text-center text-gray-500 my-6">
+              <div className="text-center text-gray-500 my-6 p-4">
                 开始和{profile?.nickname || "对方"}的对话吧
               </div>
             ) : (
               <>
-                {messages.length > 0 && (
-                  <div className="text-center text-xs text-gray-500 my-2">
-                    {formatDate(messages[0].created_at)}
-                  </div>
-                )}
-                
-                {messages.map((message, index) => {
-                  // Check if we need to show date separator
-                  const showDateSeparator = index > 0 && (
-                    new Date(message.created_at).toDateString() !==
-                    new Date(messages[index - 1].created_at).toDateString()
-                  );
-                  
-                  return (
-                    <React.Fragment key={message.id}>
-                      {showDateSeparator && (
-                        <div className="text-center text-xs text-gray-500 my-2">
-                          {formatDate(message.created_at)}
-                        </div>
-                      )}
-                      
-                      <div 
-                        className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-                      >
-                        {message.sender_id !== user.id && (
-                          <img 
-                            src={profile?.avatar || "/placeholder.svg"}
-                            alt={profile?.nickname || "用户"}
-                            className="h-8 w-8 rounded-full mr-2 self-end"
-                          />
-                        )}
-                        
-                        <div 
-                          className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                            message.sender_id === user.id 
-                              ? 'bg-blue-500 text-white rounded-br-none' 
-                              : 'bg-white text-gray-800 rounded-bl-none'
-                          }`}
-                        >
-                          <p>{message.content}</p>
-                          {message.image_url && (
-                            <img 
-                              src={message.image_url} 
-                              alt="消息图片" 
-                              className="mt-2 rounded-lg max-w-full" 
-                            />
-                          )}
-                          <div 
-                            className={`text-xs mt-1 ${
-                              message.sender_id === user.id ? 'text-blue-100' : 'text-gray-500'
-                            }`}
-                          >
-                            {new Date(message.created_at).toLocaleTimeString('zh-CN', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        </div>
-                        
-                        {message.sender_id === user.id && (
-                          <div className="w-8"></div> // Spacer for alignment
-                        )}
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
+                {messages.map((message, index) => (
+                  <React.Fragment key={message.id}>
+                    {shouldShowDateSeparator(index) && (
+                      <ChatDateSeparator date={message.created_at} />
+                    )}
+                    
+                    <ChatMessage
+                      message={message}
+                      isCurrentUser={message.sender_id === user.id}
+                      senderAvatar={profile?.avatar}
+                      senderName={profile?.nickname}
+                    />
+                  </React.Fragment>
+                ))}
               </>
             )}
             <div ref={messagesEndRef} />
@@ -309,7 +258,7 @@ const Chat: React.FC = () => {
         )}
       </div>
       
-      <div className={`bg-white p-4 border-t border-gray-100 ${inputActive ? 'pb-6' : ''}`}>
+      <div className={`bg-white p-4 border-t border-gray-100 ${inputActive ? 'pb-6' : ''} sticky bottom-0`}>
         <div className="flex items-center">
           <button className="p-2 mr-2 text-gray-500">
             <Image size={20} />
