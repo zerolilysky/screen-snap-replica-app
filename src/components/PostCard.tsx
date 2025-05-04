@@ -9,13 +9,22 @@ import { Heart, MessageSquare, Share2 } from 'lucide-react';
 interface PostCardProps {
   post: Post;
   className?: string;
+  isInteractive?: boolean;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, className }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, className, isInteractive = false }) => {
+  // Get the user data from either post.user or post.author
+  const userData = post.user || post.author;
+  
+  if (!userData) {
+    console.error("Post is missing user/author data:", post);
+    return null;
+  }
+  
   const renderVerificationBadges = () => {
     return (
       <div className="flex items-center space-x-1">
-        {post.user.verified && (
+        {userData.verified && (
           <div className="bg-yellow-100 px-1.5 rounded flex items-center">
             <svg className="w-3 h-3 text-yellow-500 mr-0.5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -24,7 +33,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, className }) => {
           </div>
         )}
         
-        {post.user.vip && (
+        {userData.vip && (
           <div className="bg-blue-100 px-1.5 rounded flex items-center">
             <svg className="w-3 h-3 text-blue-500 mr-0.5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -33,7 +42,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, className }) => {
           </div>
         )}
         
-        {post.user.realName && (
+        {userData.realName && (
           <div className="bg-green-100 px-1.5 rounded flex items-center">
             <svg className="w-3 h-3 text-green-500 mr-0.5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
@@ -42,30 +51,32 @@ const PostCard: React.FC<PostCardProps> = ({ post, className }) => {
           </div>
         )}
       </div>
-    )
+    );
   };
 
   return (
     <div className={cn("bg-white p-4 border-b border-gray-100", className)}>
       <div className="flex justify-between">
         <div className="flex items-center">
-          <UserAvatar src={post.user.avatar} />
+          <UserAvatar src={userData.avatar} />
           <div className="ml-3">
             <div className="flex items-center">
-              <h3 className="font-medium text-gray-900">{post.user.name}</h3>
-              {post.user.crown && (
+              <h3 className="font-medium text-gray-900">{userData.name}</h3>
+              {userData.crown && (
                 <svg className="w-4 h-4 ml-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               )}
-              <span className="text-xs bg-red-50 text-red-500 rounded ml-2 px-1">
-                {post.user.gender === 'male' ? '♂' : '♀'} {post.user.age}
-              </span>
+              {userData.gender && (
+                <span className="text-xs bg-red-50 text-red-500 rounded ml-2 px-1">
+                  {userData.gender === 'male' ? '♂' : '♀'} {userData.age}
+                </span>
+              )}
             </div>
             <div className="flex items-center mt-1">
-              <span className="text-gray-500 text-xs mr-2">{post.user.location}</span>
-              {post.user.lastActive && (
-                <span className="text-xs text-gray-400">{formatDate(post.user.lastActive)}</span>
+              <span className="text-gray-500 text-xs mr-2">{userData.location}</span>
+              {userData.lastActive && (
+                <span className="text-xs text-gray-400">{formatDate(userData.lastActive)}</span>
               )}
             </div>
           </div>
@@ -73,22 +84,30 @@ const PostCard: React.FC<PostCardProps> = ({ post, className }) => {
         
         <div className="flex flex-col items-end">
           {renderVerificationBadges()}
-          <span className="text-gray-400 text-xs mt-1">
-            {post.private ? '私密' : '公开'}
-          </span>
+          {post.private !== undefined && (
+            <span className="text-gray-400 text-xs mt-1">
+              {post.private ? '私密' : '公开'}
+            </span>
+          )}
         </div>
       </div>
       
       <div className="mt-3">
         <p className="text-gray-900">{post.content}</p>
         
-        {post.images && post.images.length > 0 && (
+        {post.images && post.images.length > 0 ? (
           <div className={`grid gap-1 mt-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
             {post.images.map((image, index) => (
               <div key={index} className="aspect-square overflow-hidden rounded-md">
                 <img src={image} alt="Post image" className="w-full h-full object-cover" />
               </div>
             ))}
+          </div>
+        ) : post.image && (
+          <div className="mt-2">
+            <div className="aspect-square overflow-hidden rounded-md">
+              <img src={post.image} alt="Post image" className="w-full h-full object-cover" />
+            </div>
           </div>
         )}
       </div>
@@ -104,7 +123,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, className }) => {
         </div>
         <div className="flex items-center text-gray-500">
           <Share2 className="h-5 w-5" />
-          <span className="ml-1 text-sm">{post.shares}</span>
+          <span className="ml-1 text-sm">{post.shares || 0}</span>
         </div>
       </div>
     </div>

@@ -39,12 +39,33 @@ export interface Post {
     gender: 'male' | 'female' | 'unknown';
     verified?: boolean;
     online?: boolean;
+    vip?: boolean;
+    realName?: boolean;
+    crown?: boolean;
+    age?: number;
+    lastActive?: string;
   };
   likes: number;
   comments: number;
   time: string;
   image?: string;
+  images?: string[];
   tags?: string[];
+  private?: boolean;
+  shares?: number;
+  user?: {
+    id: string;
+    name: string;
+    avatar: string;
+    location?: string;
+    gender?: string;
+    verified?: boolean;
+    vip?: boolean;
+    realName?: boolean;
+    crown?: boolean;
+    age?: number;
+    lastActive?: string;
+  };
 }
 
 export interface User {
