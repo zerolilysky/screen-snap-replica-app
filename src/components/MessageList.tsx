@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { formatDate } from '@/lib/utils';
-import { Avatar } from '@/components/ui/avatar';
+import UserMessage from '@/components/UserMessage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MessageItem {
@@ -35,31 +35,17 @@ const MessageList: React.FC<MessageListProps> = ({ messages, loading, onChatClic
   return (
     <ScrollArea className="flex-1 bg-white">
       {messages.map((message) => (
-        <div 
-          key={message.user_id} 
-          className="flex p-4 border-b border-gray-100 cursor-pointer"
+        <UserMessage
+          key={message.user_id}
+          avatar={message.avatar}
+          name={message.nickname}
+          message={message.lastMessage}
+          time={formatDate(message.timestamp)}
           onClick={() => onChatClick(message.user_id)}
-        >
-          <Avatar className="h-12 w-12">
-            <img 
-              src={message.avatar} 
-              alt={message.nickname}
-              className="w-full h-full object-cover rounded-full"
-            />
-            {message.unread && (
-              <span className="absolute top-0 right-0 bg-red-500 h-3 w-3 rounded-full border-2 border-white"></span>
-            )}
-          </Avatar>
-          <div className="ml-3 flex-1">
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium">{message.nickname}</h3>
-              <span className="text-xs text-gray-400">
-                {formatDate(message.timestamp)}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 truncate">{message.lastMessage}</p>
-          </div>
-        </div>
+          isOnline={false} // We don't have online status in the messages data
+          unreadCount={message.unread ? 1 : 0}
+          className="border-b border-gray-100"
+        />
       ))}
     </ScrollArea>
   );
