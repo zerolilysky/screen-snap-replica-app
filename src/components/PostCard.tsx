@@ -1,250 +1,110 @@
 
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { Post } from '../types';
 import UserAvatar from './UserAvatar';
-import { Heart, MessageSquare, Share2, Send } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
+import { cn } from '../lib/utils';
+import { formatDate } from '../lib/utils';
+import { Heart, MessageSquare, Share2 } from 'lucide-react';
 
 interface PostCardProps {
   post: Post;
-  isInteractive?: boolean;
+  className?: string;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
-  const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes || 0);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
-  const [commentText, setCommentText] = useState('');
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const commentInputRef = useRef<HTMLInputElement>(null);
-  
-  const handleLike = async () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "需要登录",
-        description: "请先登录后再点赞",
-        variant: "destructive"
-      });
-      navigate('/auth', { state: { from: { pathname: `/community/post/${post.id}` } } });
-      return;
-    }
-    
-    if (!liked) {
-      try {
-        const { error } = await supabase
-          .from('likes')
-          .insert({ user_id: user!.id, post_id: post.id });
-          
-        if (error) throw error;
+const PostCard: React.FC<PostCardProps> = ({ post, className }) => {
+  const renderVerificationBadges = () => {
+    return (
+      <div className="flex items-center space-x-1">
+        {post.user.verified && (
+          <div className="bg-yellow-100 px-1.5 rounded flex items-center">
+            <svg className="w-3 h-3 text-yellow-500 mr-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span className="text-xs font-medium text-yellow-700">认证</span>
+          </div>
+        )}
         
-        setLiked(true);
-        setLikeCount(prevCount => prevCount + 1);
-        toast({ description: "点赞成功" });
-      } catch (error) {
-        console.error("点赞错误:", error);
-        toast({ 
-          title: "操作失败", 
-          description: "无法点赞，请稍后再试", 
-          variant: "destructive" 
-        });
-      }
-    } else {
-      try {
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('user_id', user!.id)
-          .eq('post_id', post.id);
-          
-        if (error) throw error;
+        {post.user.vip && (
+          <div className="bg-blue-100 px-1.5 rounded flex items-center">
+            <svg className="w-3 h-3 text-blue-500 mr-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span className="text-xs font-medium text-blue-700">VIP</span>
+          </div>
+        )}
         
-        setLiked(false);
-        setLikeCount(prevCount => Math.max(0, prevCount - 1));
-      } catch (error) {
-        console.error("取消点赞错误:", error);
-      }
-    }
-  };
-  
-  const handleComment = async () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "需要登录",
-        description: "请先登录后再评论",
-        variant: "destructive"
-      });
-      navigate('/auth', { state: { from: { pathname: `/community/post/${post.id}` } } });
-      return;
-    }
-    
-    // Navigate to post detail page
-    navigate(`/community/post/${post.id}`);
-  };
-  
-  const fetchComments = async () => {
-    setIsLoadingComments(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('comments')
-        .select(`
-          *,
-          profiles:user_id (nickname, avatar)
-        `)
-        .eq('post_id', post.id)
-        .order('created_at', { ascending: true });
-        
-      if (error) throw error;
-      
-      setComments(data || []);
-    } catch (error: any) {
-      console.error('获取评论错误:', error.message);
-      toast({
-        title: "获取评论失败",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoadingComments(false);
-    }
-  };
-  
-  const submitComment = async () => {
-    if (!commentText.trim() || !isAuthenticated) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
-          post_id: post.id,
-          user_id: user!.id,
-          content: commentText.trim()
-        })
-        .select(`
-          *,
-          profiles:user_id (nickname, avatar)
-        `)
-        .single();
-        
-      if (error) throw error;
-      
-      // Update comments list
-      setComments([...comments, data]);
-      
-      // Clear input
-      setCommentText('');
-      
-      toast({ description: "评论成功" });
-    } catch (error: any) {
-      console.error('提交评论错误:', error.message);
-      toast({
-        title: "评论失败",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-  
-  const handleShare = () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "需要登录",
-        description: "请先登录后再分享",
-        variant: "destructive"
-      });
-      navigate('/auth', { state: { from: { pathname: `/community/post/${post.id}` } } });
-      return;
-    }
-    toast({ description: "分享功能开发中" });
-  };
-
-  const handleUserClick = () => {
-    if (isInteractive) {
-      navigate(`/user/${post.author.id}`);
-    }
-  };
-
-  const handlePostClick = () => {
-    if (isInteractive) {
-      navigate(`/community/post/${post.id}`);
-    }
+        {post.user.realName && (
+          <div className="bg-green-100 px-1.5 rounded flex items-center">
+            <svg className="w-3 h-3 text-green-500 mr-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            </svg>
+            <span className="text-xs font-medium text-green-700">实名</span>
+          </div>
+        )}
+      </div>
+    )
   };
 
   return (
-    <div className="border-b border-gray-100 p-4">
-      <div className="flex items-start">
-        <div onClick={handleUserClick} className={isInteractive ? "cursor-pointer" : ""}>
-          <UserAvatar src={post.author.avatar} />
-        </div>
-        <div className="ml-3 flex-1">
-          <div className="flex items-center">
-            <h3 
-              className={`font-medium ${isInteractive ? "cursor-pointer" : ""}`}
-              onClick={handleUserClick}
-            >
-              {post.author.name}
-            </h3>
-            {post.author.verified && (
-              <span className="ml-1 text-blue-500 text-sm">✓</span>
-            )}
-          </div>
-          <div className="text-gray-500 text-xs flex items-center">
-            <span>{post.time}</span>
-            {post.author.location && (
-              <>
-                <span className="mx-1">·</span>
-                <span>{post.author.location}</span>
-              </>
-            )}
-          </div>
-          <div className={isInteractive ? "cursor-pointer" : ""} onClick={handlePostClick}>
-            <p className="mt-2">{post.content}</p>
-            {post.image && (
-              <div className="mt-2 rounded-lg overflow-hidden">
-                <img src={post.image} alt="Post" className="w-full h-auto" />
-              </div>
-            )}
-            {post.tags && post.tags.length > 0 && (
-              <div className="mt-2 flex flex-wrap">
-                {post.tags.map((tag, index) => (
-                  <span key={index} className="text-blue-500 text-sm mr-2">#{tag}</span>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {isInteractive && (
-            <div className="mt-3 flex justify-around">
-              <button 
-                className="flex items-center text-gray-500" 
-                onClick={handleLike}
-              >
-                <Heart className={`h-5 w-5 mr-1 ${liked ? 'text-red-500 fill-red-500' : ''}`} />
-                <span>{likeCount}</span>
-              </button>
-              <button 
-                className="flex items-center text-gray-500" 
-                onClick={handleComment}
-              >
-                <MessageSquare className="h-5 w-5 mr-1" />
-                <span>{comments.length || post.comments}</span>
-              </button>
-              <button 
-                className="flex items-center text-gray-500" 
-                onClick={handleShare}
-              >
-                <Share2 className="h-5 w-5 mr-1" />
-                <span>分享</span>
-              </button>
+    <div className={cn("bg-white p-4 border-b border-gray-100", className)}>
+      <div className="flex justify-between">
+        <div className="flex items-center">
+          <UserAvatar src={post.user.avatar} />
+          <div className="ml-3">
+            <div className="flex items-center">
+              <h3 className="font-medium text-gray-900">{post.user.name}</h3>
+              {post.user.crown && (
+                <svg className="w-4 h-4 ml-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              )}
+              <span className="text-xs bg-red-50 text-red-500 rounded ml-2 px-1">
+                {post.user.gender === 'male' ? '♂' : '♀'} {post.user.age}
+              </span>
             </div>
-          )}
+            <div className="flex items-center mt-1">
+              <span className="text-gray-500 text-xs mr-2">{post.user.location}</span>
+              {post.user.lastActive && (
+                <span className="text-xs text-gray-400">{formatDate(post.user.lastActive)}</span>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-end">
+          {renderVerificationBadges()}
+          <span className="text-gray-400 text-xs mt-1">
+            {post.private ? '私密' : '公开'}
+          </span>
+        </div>
+      </div>
+      
+      <div className="mt-3">
+        <p className="text-gray-900">{post.content}</p>
+        
+        {post.images && post.images.length > 0 && (
+          <div className={`grid gap-1 mt-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+            {post.images.map((image, index) => (
+              <div key={index} className="aspect-square overflow-hidden rounded-md">
+                <img src={image} alt="Post image" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between">
+        <div className="flex items-center text-gray-500">
+          <Heart className="h-5 w-5" />
+          <span className="ml-1 text-sm">{post.likes}</span>
+        </div>
+        <div className="flex items-center text-gray-500">
+          <MessageSquare className="h-5 w-5" />
+          <span className="ml-1 text-sm">{post.comments}</span>
+        </div>
+        <div className="flex items-center text-gray-500">
+          <Share2 className="h-5 w-5" />
+          <span className="ml-1 text-sm">{post.shares}</span>
         </div>
       </div>
     </div>

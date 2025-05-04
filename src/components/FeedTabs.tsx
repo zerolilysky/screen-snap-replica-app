@@ -8,24 +8,33 @@ interface FeedTabsProps {
 
 const FeedTabs: React.FC<FeedTabsProps> = ({ activeTab, onTabChange }) => {
   return (
-    <div className="flex space-x-4 border-b border-gray-200 px-4 mb-4">
+    <div className="flex space-x-6 px-4 mb-0 overflow-x-auto">
       <button 
-        className={`pb-2 px-1 ${activeTab === 'activity' ? 'text-black border-b-2 border-black font-medium' : 'text-gray-500'}`}
+        className={`py-2.5 px-1.5 relative ${activeTab === 'activity' ? 'text-black font-medium' : 'text-gray-500'}`}
         onClick={() => onTabChange('activity')}
       >
         动态
+        {activeTab === 'activity' && (
+          <div className="absolute bottom-0 left-1 right-1 h-0.5 bg-black rounded-full" />
+        )}
       </button>
       <button 
-        className={`pb-2 px-1 ${activeTab === 'nearby' ? 'text-black border-b-2 border-black font-medium' : 'text-gray-500'}`}
+        className={`py-2.5 px-1.5 relative ${activeTab === 'nearby' ? 'text-black font-medium' : 'text-gray-500'}`}
         onClick={() => onTabChange('nearby')}
       >
         附近
+        {activeTab === 'nearby' && (
+          <div className="absolute bottom-0 left-1 right-1 h-0.5 bg-black rounded-full" />
+        )}
       </button>
       <button 
-        className={`pb-2 px-1 ${activeTab === 'recommend' ? 'text-black border-b-2 border-black font-medium' : 'text-gray-500'}`}
+        className={`py-2.5 px-1.5 relative ${activeTab === 'recommend' ? 'text-black font-medium' : 'text-gray-500'}`}
         onClick={() => onTabChange('recommend')}
       >
         推荐
+        {activeTab === 'recommend' && (
+          <div className="absolute bottom-0 left-1 right-1 h-0.5 bg-black rounded-full" />
+        )}
       </button>
     </div>
   );
