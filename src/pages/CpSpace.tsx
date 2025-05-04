@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
@@ -24,43 +23,37 @@ const CpSpace: React.FC = () => {
   const fetchCouples = async () => {
     setLoading(true);
     try {
-      // Specify explicit columns for profiles to fix the TypeScript error
+      // Use profiles(columnName) format to explicitly select fields
       const { data, error } = await supabase
         .from('couples')
         .select(`
           id,
           name,
           created_at,
-          user1:user1_id(
-            id:id, 
-            nickname:nickname, 
-            avatar:avatar
-          ),
-          user2:user2_id(
-            id:id, 
-            nickname:nickname, 
-            avatar:avatar
-          )
+          user1_id,
+          profiles!couples_user1_id_fkey(id, nickname, avatar),
+          user2_id,
+          profiles!couples_user2_id_fkey(id, nickname, avatar)
         `)
         .order('created_at', { ascending: false })
         .limit(20);
       
       if (error) throw error;
       
-      // Safely format the couples data
+      // Format the couples data with proper structure
       const formattedCouples: Couple[] = data.map(couple => ({
         id: couple.id,
         name: couple.name || '未命名CP',
         created_at: couple.created_at,
         user1: {
-          id: couple.user1?.id || '',
-          nickname: couple.user1?.nickname || '用户1',
-          avatar: couple.user1?.avatar || '/placeholder.svg'
+          id: couple.profiles?.id || '',
+          nickname: couple.profiles?.nickname || '用户1',
+          avatar: couple.profiles?.avatar || '/placeholder.svg'
         },
         user2: {
-          id: couple.user2?.id || '',
-          nickname: couple.user2?.nickname || '用户2',
-          avatar: couple.user2?.avatar || '/placeholder.svg'
+          id: couple.profiles?.id || '',
+          nickname: couple.profiles?.nickname || '用户2',
+          avatar: couple.profiles?.avatar || '/placeholder.svg'
         }
       }));
       

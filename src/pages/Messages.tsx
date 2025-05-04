@@ -45,7 +45,7 @@ const Messages: React.FC = () => {
   const fetchMessages = async () => {
     setLoading(true);
     try {
-      // Messages I've received (where I'm the receiver) - fixed with explicit column naming
+      // Use explicit column reference format for reliable TypeScript types
       const { data: receivedData, error: receivedError } = await supabase
         .from('messages')
         .select(`
@@ -54,18 +54,14 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          sender:sender_id(
-            id:id,
-            nickname:nickname,
-            avatar:avatar
-          )
+          profiles!messages_sender_id_fkey(id, nickname, avatar)
         `)
         .eq('receiver_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (receivedError) throw receivedError;
       
-      // Messages I've sent (where I'm the sender) - fixed with explicit column naming
+      // Messages I've sent (where I'm the sender)
       const { data: sentData, error: sentError } = await supabase
         .from('messages')
         .select(`
@@ -74,38 +70,34 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          receiver:receiver_id(
-            id:id,
-            nickname:nickname,
-            avatar:avatar
-          )
+          profiles!messages_receiver_id_fkey(id, nickname, avatar)
         `)
         .eq('sender_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (sentError) throw sentError;
       
-      // Process received messages
+      // Process received messages with updated field access
       const receivedMessages = receivedData.map(msg => ({
         id: msg.id,
         user_id: msg.sender_id,
         content: msg.content,
         created_at: msg.created_at,
         read: msg.read,
-        nickname: msg.sender?.nickname || '未知用户',
-        avatar: msg.sender?.avatar || '/placeholder.svg',
+        nickname: msg.profiles?.nickname || '未知用户',
+        avatar: msg.profiles?.avatar || '/placeholder.svg',
         isOutgoing: false
       }));
       
-      // Process sent messages
+      // Process sent messages with updated field access
       const sentMessages = sentData.map(msg => ({
         id: msg.id,
         user_id: msg.receiver_id,
         content: msg.content,
         created_at: msg.created_at,
         read: msg.read,
-        nickname: msg.receiver?.nickname || '未知用户',
-        avatar: msg.receiver?.avatar || '/placeholder.svg',
+        nickname: msg.profiles?.nickname || '未知用户',
+        avatar: msg.profiles?.avatar || '/placeholder.svg',
         isOutgoing: true
       }));
       
