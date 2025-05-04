@@ -72,8 +72,6 @@ const Match: React.FC = () => {
             <p className="text-xs mt-1 text-gray-400">tips: 礼貌的打招呼，对方才会有好的回应</p>
           </div>
           
-          {/* Removed the purchase card section */}
-          
           <div className="absolute right-4 top-32">
             <div className="bg-white bg-opacity-10 rounded-full p-2">
               <span className="text-purple-300">精准</span>

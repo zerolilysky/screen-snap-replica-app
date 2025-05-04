@@ -45,7 +45,7 @@ const Messages: React.FC = () => {
   const fetchMessages = async () => {
     setLoading(true);
     try {
-      // Messages I've received (where I'm the receiver)
+      // Messages I've received (where I'm the receiver) - fixed with explicit column naming
       const { data: receivedData, error: receivedError } = await supabase
         .from('messages')
         .select(`
@@ -54,18 +54,14 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          sender:sender_id (
-            id,
-            nickname,
-            avatar
-          )
+          sender:sender_id(id, nickname, avatar)
         `)
         .eq('receiver_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (receivedError) throw receivedError;
       
-      // Messages I've sent (where I'm the sender)
+      // Messages I've sent (where I'm the sender) - fixed with explicit column naming
       const { data: sentData, error: sentError } = await supabase
         .from('messages')
         .select(`
@@ -74,11 +70,7 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          receiver:receiver_id (
-            id,
-            nickname,
-            avatar
-          )
+          receiver:receiver_id(id, nickname, avatar)
         `)
         .eq('sender_id', user?.id)
         .order('created_at', { ascending: false });
