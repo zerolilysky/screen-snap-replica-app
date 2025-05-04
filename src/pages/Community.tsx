@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
 import TabBar from '../components/TabBar';
 import CommunityTabs from '../components/CommunityTabs';
@@ -7,9 +8,20 @@ import PostCard from '../components/PostCard';
 import EmptyState from '../components/EmptyState';
 import FloatingButton from '../components/FloatingButton';
 import { communityPosts } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 
 const Community: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'following' | 'recommended'>('recommended');
+
+  const handleCreatePost = () => {
+    if (user) {
+      navigate('/community/post');
+    } else {
+      navigate('/auth');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col pb-16">
@@ -25,12 +37,12 @@ const Community: React.FC = () => {
       ) : (
         <div className="flex-1">
           {communityPosts.map(post => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.id} post={post} isInteractive={true} />
           ))}
         </div>
       )}
       
-      <FloatingButton />
+      <FloatingButton onClick={handleCreatePost} />
       
       <TabBar />
     </div>

@@ -5,49 +5,62 @@ import UserAvatar from './UserAvatar';
 
 interface MatchRadarProps {
   users: User[];
-  center?: User;
+  center: User;
+  onUserClick?: (userId: string) => void;
 }
 
-const MatchRadar: React.FC<MatchRadarProps> = ({ users, center }) => {
-  // Define positions for the radar animation
-  const positions = [
-    { top: '40%', left: '15%' },
-    { top: '25%', left: '35%' },
-    { top: '25%', right: '15%' },
-    { top: '50%', right: '25%' },
-    { top: '65%', left: '25%' }
-  ];
+const MatchRadar: React.FC<MatchRadarProps> = ({ users, center, onUserClick }) => {
+  // Generate positions for users around the radar
+  const positionUsers = () => {
+    return users.map((user, index) => {
+      const angle = (index / users.length) * 2 * Math.PI;
+      const radius = 120; // Distance from center
+      const x = radius * Math.cos(angle) + 150; // 150 is center X
+      const y = radius * Math.sin(angle) + 150; // 150 is center Y
+      
+      return {
+        ...user,
+        x,
+        y
+      };
+    });
+  };
+
+  const positionedUsers = positionUsers();
 
   return (
-    <div className="relative h-80 w-full my-8">
+    <div className="w-full aspect-square max-w-md mx-auto relative my-4">
       {/* Radar circles */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5 rounded-full border-2 border-gray-600 opacity-30" />
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3/5 h-3/5 rounded-full border-2 border-gray-600 opacity-30" />
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2/5 h-2/5 rounded-full border-2 border-gray-600 opacity-30" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-full h-full rounded-full border border-gray-700 opacity-20"></div>
+        <div className="absolute w-3/4 h-3/4 rounded-full border border-gray-700 opacity-20"></div>
+        <div className="absolute w-1/2 h-1/2 rounded-full border border-gray-700 opacity-20"></div>
+      </div>
       
-      {/* Center user avatar (current user) */}
-      {center && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <UserAvatar src={center.avatar} size="lg" online={true} />
-        </div>
-      )}
+      {/* Center user */}
+      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <UserAvatar src={center.avatar} size="lg" />
+      </div>
       
-      {/* Nearby users */}
-      {users.map((user, index) => {
-        const position = positions[index % positions.length];
-        return (
-          <div 
-            key={user.id} 
-            className="absolute"
-            style={position}
-          >
-            <div className="flex flex-col items-center">
-              <UserAvatar src={user.avatar} size="md" online={user.online} />
-              <span className="text-xs mt-1 text-gray-300">{user.distance}</span>
-            </div>
+      {/* Positioned users */}
+      {positionedUsers.map((user) => (
+        <div 
+          key={user.id} 
+          className="absolute flex flex-col items-center cursor-pointer"
+          style={{ 
+            left: `${user.x}px`, 
+            top: `${user.y}px`,
+            transform: 'translate(-50%, -50%)'
+          }}
+          onClick={() => onUserClick && onUserClick(user.id)}
+        >
+          <UserAvatar src={user.avatar} online={user.online} />
+          <div className="mt-1 text-center">
+            <p className="text-xs text-white font-medium">{user.name}</p>
+            <p className="text-xs text-gray-400">{user.distance}</p>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 };

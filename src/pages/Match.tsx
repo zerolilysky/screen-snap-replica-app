@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
 import TabBar from '../components/TabBar';
 import MatchTabs from '../components/MatchTabs';
@@ -7,10 +8,25 @@ import UserAvatar from '../components/UserAvatar';
 import MatchRadar from '../components/MatchRadar';
 import MatchOptions from '../components/MatchOptions';
 import { currentUser, nearbyUsers } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 
 const Match: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'match' | 'friends'>('match');
   const onlineCount = 47914;
+
+  const handleUserClick = (userId: string) => {
+    navigate(`/user/${userId}`);
+  };
+
+  const handleMatchOptionClick = (type: string) => {
+    navigate(`/match/${type}`);
+  };
+
+  const handlePurchaseCard = () => {
+    navigate('/match/purchase');
+  };
 
   return (
     <div className="min-h-screen bg-app-dark flex flex-col pb-16">
@@ -35,12 +51,18 @@ const Match: React.FC = () => {
       <div className="bg-app-dark px-4 pt-2">
         <div className="bg-opacity-20 bg-gray-700 rounded-xl p-4">
           <div className="flex items-center">
-            <UserAvatar src={currentUser.avatar} size="lg" />
+            <UserAvatar 
+              src={profile?.avatar || '/placeholder.svg'} 
+              size="lg" 
+            />
             <div className="ml-4">
-              <h2 className="text-white text-xl font-medium">{currentUser.name}</h2>
+              <h2 className="text-white text-xl font-medium">{profile?.nickname || '未登录用户'}</h2>
               <div className="flex items-center mt-1">
                 <span className="text-gray-400 text-sm">尚未人格测试</span>
-                <button className="ml-2 text-red-400 text-sm border border-red-400 rounded px-2 py-0.5">
+                <button 
+                  className="ml-2 text-red-400 text-sm border border-red-400 rounded px-2 py-0.5"
+                  onClick={() => navigate('/personality-test')}
+                >
                   立即前往
                 </button>
               </div>
@@ -51,14 +73,21 @@ const Match: React.FC = () => {
       
       {activeTab === 'match' && (
         <>
-          <MatchRadar users={nearbyUsers} center={currentUser} />
+          <MatchRadar 
+            users={nearbyUsers} 
+            center={currentUser} 
+            onUserClick={handleUserClick}
+          />
           
           <div className="text-center text-gray-300 mb-1">
             <p className="font-medium">当前 {onlineCount} 人正在匹配</p>
             <p className="text-xs mt-1 text-gray-400">tips: 礼貌的打招呼，对方才会有好的回应</p>
           </div>
           
-          <div className="px-4 py-3 bg-opacity-20 bg-gray-700 mx-4 rounded-xl flex items-center">
+          <div 
+            className="px-4 py-3 bg-opacity-20 bg-gray-700 mx-4 rounded-xl flex items-center cursor-pointer"
+            onClick={handlePurchaseCard}
+          >
             <div className="flex-shrink-0">
               <img src="/lovable-uploads/710f54bf-505f-4047-86f9-23670f5034fb.png" alt="Card" className="h-12 w-12" />
             </div>
@@ -78,7 +107,7 @@ const Match: React.FC = () => {
             </div>
           </div>
           
-          <MatchOptions />
+          <MatchOptions onOptionClick={handleMatchOptionClick} />
         </>
       )}
       

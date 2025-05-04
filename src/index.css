@@ -2,7 +2,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -10,102 +10,98 @@
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
-
+ 
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-
+ 
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
-
+ 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-
+ 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
+ 
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-
+ 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-
+ 
     --radius: 0.5rem;
   }
-
+ 
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-
+ 
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-
+ 
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-
+ 
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
-
+ 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
+ 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-
+ 
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-
+ 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
+ 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
-
+}
+ 
+@layer base {
   * {
     @apply border-border;
   }
-  
-  html, body {
+  body {
     @apply bg-background text-foreground;
-    padding: 0;
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
-  
-  /* Custom colors for the app theme */
-  :root {
-    --quick-match-pink: #FF7BAC;
-    --quick-match-purple: #9B87F5;
-    --quick-match-blue: #3B95FF;
-    --quick-match-orange: #FF837B;
-    --nearby-match-blue: #43A9F5;
-    --voice-match-pink: #FF837B;
-    --dark-background: #131622;
-    --light-gray: #F6F6F7;
-  }
-  
-  .bg-dark-theme {
-    background-color: var(--dark-background);
-  }
-  
-  .bg-quick-match {
-    background: linear-gradient(135deg, #FF7BAC 0%, #D24B9A 100%);
-  }
-  
-  .bg-nearby-match {
-    background: linear-gradient(135deg, #43A9F5 0%, #2E80D1 100%);
-  }
-  
-  .bg-voice-match {
-    background: linear-gradient(135deg, #FF837B 0%, #EF5350 100%);
-  }
-  
-  .bg-promo {
-    background: linear-gradient(90deg, #EAFF8F 0%, #B8F673 100%);
-  }
+}
+
+/* App specific custom styles */
+.bg-app-dark {
+  background-color: #1a1a2e;
+}
+
+.bg-quick-match {
+  background: linear-gradient(135deg, #FF6B6B 0%, #ff4080 100%);
+}
+
+.bg-nearby-match {
+  background: linear-gradient(135deg, #4E65FF 0%, #2d3cff 100%);
+}
+
+.bg-voice-match {
+  background: linear-gradient(135deg, #FF9E2C 0%, #ff8500 100%);
+}
+
+.text-app-pink {
+  color: #ff4080;
+}
+
+.text-app-blue {
+  color: #2d3cff;
+}
+
+.text-app-orange {
+  color: #ff8500;
 }

@@ -1,13 +1,21 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
 import TabBar from '../components/TabBar';
 import NotificationTabs from '../components/NotificationTabs';
 import NotificationFilter from '../components/NotificationFilter';
 import EmptyState from '../components/EmptyState';
+import { useAuth } from '../contexts/AuthContext';
 
 const Messages: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'chat' | 'match'>('chat');
+
+  const handleFilterClick = (type: string) => {
+    navigate(`/messages/${type}`);
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col pb-16">
@@ -22,16 +30,7 @@ const Messages: React.FC = () => {
         </button>
       </div>
       
-      <div className="bg-red-400 text-white py-2 px-4 flex justify-between items-center">
-        <span>聊天服务已断开</span>
-        <button className="text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      
-      <NotificationFilter />
+      <NotificationFilter onFilterClick={handleFilterClick} />
       
       <NotificationTabs activeTab={activeTab} onTabChange={setActiveTab} />
       

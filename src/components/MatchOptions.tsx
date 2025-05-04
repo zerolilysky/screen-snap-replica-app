@@ -1,10 +1,17 @@
 
 import React from 'react';
 
-const MatchOptions: React.FC = () => {
+interface MatchOptionsProps {
+  onOptionClick: (type: string) => void;
+}
+
+const MatchOptions: React.FC<MatchOptionsProps> = ({ onOptionClick }) => {
   return (
     <div className="grid grid-cols-3 gap-4 px-4 mb-6">
-      <div className="bg-quick-match rounded-xl p-4 flex flex-col">
+      <div 
+        className="bg-quick-match rounded-xl p-4 flex flex-col cursor-pointer"
+        onClick={() => onOptionClick('quick')}
+      >
         <h3 className="text-white font-bold text-lg mb-1">快速匹配</h3>
         <p className="text-white text-xs mb-2">在线一键畅聊</p>
         <p className="text-white text-xs">免费1次</p>
@@ -15,7 +22,10 @@ const MatchOptions: React.FC = () => {
         </div>
       </div>
       
-      <div className="bg-nearby-match rounded-xl p-4 flex flex-col">
+      <div 
+        className="bg-nearby-match rounded-xl p-4 flex flex-col cursor-pointer"
+        onClick={() => onOptionClick('nearby')}
+      >
         <h3 className="text-white font-bold text-lg mb-1">附近匹配</h3>
         <p className="text-white text-xs mb-2">寻找附近缘分</p>
         <p className="text-white text-xs">免费5次</p>
@@ -26,7 +36,10 @@ const MatchOptions: React.FC = () => {
         </div>
       </div>
       
-      <div className="bg-voice-match rounded-xl p-4 flex flex-col">
+      <div 
+        className="bg-voice-match rounded-xl p-4 flex flex-col cursor-pointer"
+        onClick={() => onOptionClick('voice')}
+      >
         <h3 className="text-white font-bold text-lg mb-1">声音匹配</h3>
         <p className="text-white text-xs mb-2">听见心动的声音</p>
         <p className="text-white text-xs">免费5次</p>
