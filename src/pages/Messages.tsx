@@ -2,31 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
 import TabBar from '../components/TabBar';
-import NotificationTabs from '../components/NotificationTabs';
-import NotificationFilter from '../components/NotificationFilter';
-import EmptyState from '../components/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
-import UserMessage from '../components/UserMessage';
-import { supabase } from '../integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Search, Bell, ChevronRight } from 'lucide-react';
+import UserAvatar from '../components/UserAvatar';
+import { formatDistanceToNow } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 
 const Messages: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'chat' | 'match'>('chat');
   const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
+  const [loading, setLoading] = useState(true);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  
   useEffect(() => {
     if (user) {
       fetchMessages();
       
       // Subscribe to new messages
       const channel = supabase
-        .channel('messages-updates')
+        .channel('public:messages')
         .on('postgres_changes', 
           { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, 
-          () => {
+          (payload) => {
+            console.log('New message received:', payload);
             fetchMessages();
           }
         )
@@ -35,16 +36,17 @@ const Messages: React.FC = () => {
       return () => {
         supabase.removeChannel(channel);
       };
+    } else {
+      setMessages([]);
+      setLoading(false);
     }
   }, [user]);
-
+  
   const fetchMessages = async () => {
-    if (!user) return;
-    
     setLoading(true);
     try {
-      // Fix the query to use explicit column names with proper hints
-      const { data: senders, error: sendersError } = await supabase
+      // Messages I've received (where I'm the receiver)
+      const { data: receivedData, error: receivedError } = await supabase
         .from('messages')
         .select(`
           id,
@@ -52,16 +54,19 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          sender:profiles!sender_id(id, nickname, avatar)
+          sender:sender_id (
+            id,
+            nickname,
+            avatar
+          )
         `)
-        .eq('receiver_id', user.id)
-        .order('sender_id', { ascending: true })
+        .eq('receiver_id', user?.id)
         .order('created_at', { ascending: false });
-
-      if (sendersError) throw sendersError;
       
-      // Get messages sent by the current user (as latest message in each conversation)
-      const { data: receivers, error: receiversError } = await supabase
+      if (receivedError) throw receivedError;
+      
+      // Messages I've sent (where I'm the sender)
+      const { data: sentData, error: sentError } = await supabase
         .from('messages')
         .select(`
           id,
@@ -69,59 +74,86 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          receiver:profiles!receiver_id(id, nickname, avatar)
+          receiver:receiver_id (
+            id,
+            nickname,
+            avatar
+          )
         `)
-        .eq('sender_id', user.id)
-        .order('receiver_id', { ascending: true })
+        .eq('sender_id', user?.id)
         .order('created_at', { ascending: false });
-        
-      if (receiversError) throw receiversError;
       
-      // Combine and format all messages
-      const formattedSenders = senders ? senders.map(message => ({
-        id: message.id,
-        partner_id: message.sender_id,
-        content: message.content,
-        created_at: message.created_at,
-        name: message.sender?.nickname || 'Unknown',
-        avatar: message.sender?.avatar || '/placeholder.svg',
-        read: message.read || false,
-        is_sender: false
-      })) : [];
+      if (sentError) throw sentError;
       
-      const formattedReceivers = receivers ? receivers.map(message => ({
-        id: message.id,
-        partner_id: message.receiver_id,
-        content: message.content,
-        created_at: message.created_at,
-        name: message.receiver?.nickname || 'Unknown',
-        avatar: message.receiver?.avatar || '/placeholder.svg',
-        read: true, // Messages sent by the user are always read
-        is_sender: true
-      })) : [];
+      // Process received messages
+      const receivedMessages = receivedData.map(msg => ({
+        id: msg.id,
+        user_id: msg.sender_id,
+        content: msg.content,
+        created_at: msg.created_at,
+        read: msg.read,
+        nickname: msg.sender?.nickname || '未知用户',
+        avatar: msg.sender?.avatar || '/placeholder.svg',
+        isOutgoing: false
+      }));
       
-      // Merge conversations and sort by latest message
-      const allConversations = [...formattedSenders, ...formattedReceivers];
-      const uniqueConversations = allConversations.reduce((acc, current) => {
-        const isDuplicate = acc.find(item => item.partner_id === current.partner_id);
-        if (!isDuplicate) {
-          return [...acc, current];
-        } else {
-          // If duplicate exists, keep the one with the newest message
-          const duplicateIndex = acc.findIndex(item => item.partner_id === current.partner_id);
-          const existing = acc[duplicateIndex];
-          const newerMessage = new Date(current.created_at) > new Date(existing.created_at) ? current : existing;
-          acc[duplicateIndex] = newerMessage;
-          return acc;
+      // Process sent messages
+      const sentMessages = sentData.map(msg => ({
+        id: msg.id,
+        user_id: msg.receiver_id,
+        content: msg.content,
+        created_at: msg.created_at,
+        read: msg.read,
+        nickname: msg.receiver?.nickname || '未知用户',
+        avatar: msg.receiver?.avatar || '/placeholder.svg',
+        isOutgoing: true
+      }));
+      
+      // Combine and sort all messages by user_id to group conversations
+      const allMessages = [...receivedMessages, ...sentMessages];
+      
+      // Group messages by user
+      const userConversations: {[key: string]: any} = {};
+      
+      allMessages.forEach(msg => {
+        if (!userConversations[msg.user_id]) {
+          userConversations[msg.user_id] = {
+            user_id: msg.user_id,
+            nickname: msg.nickname,
+            avatar: msg.avatar,
+            messages: []
+          };
         }
-      }, []);
+        userConversations[msg.user_id].messages.push(msg);
+      });
       
-      // Sort all conversations by most recent message
-      const sortedConversations = uniqueConversations.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      // Sort messages within each conversation by date (newest first)
+      Object.values(userConversations).forEach((conv: any) => {
+        conv.messages.sort((a: any, b: any) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
+      
+      // Convert to array and keep only the most recent message for each user
+      const latestMessages = Object.values(userConversations).map((conv: any) => ({
+        user_id: conv.user_id,
+        nickname: conv.nickname,
+        avatar: conv.avatar,
+        lastMessage: conv.messages[0].content,
+        timestamp: conv.messages[0].created_at,
+        unread: conv.messages.some((m: any) => !m.read && !m.isOutgoing)
+      }));
+      
+      // Sort by timestamp (newest first)
+      latestMessages.sort((a: any, b: any) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       
-      setMessages(sortedConversations);
+      setMessages(latestMessages);
+      
+      // Update message count badge
+      const unreadCount = latestMessages.filter(m => m.unread).length;
+      setUnreadMessageCount(unreadCount);
     } catch (error: any) {
       console.error('获取消息错误:', error.message);
       toast({
@@ -133,109 +165,133 @@ const Messages: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const handleFilterClick = (type: string) => {
-    navigate(`/messages/${type}`);
+  
+  const formatTime = (timestamp: string) => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true, locale: zhCN });
+    } catch (e) {
+      return '未知时间';
+    }
   };
-
-  const handleUserClick = (userId: string) => {
+  
+  const handleChatClick = (userId: string) => {
     navigate(`/chat/${userId}`);
   };
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) {
-      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    } else if (days === 1) {
-      return '昨天';
-    } else if (days < 7) {
-      const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-      return weekdays[date.getDay()];
-    } else {
-      return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
-    }
+  
+  const handleNotificationsClick = () => {
+    navigate('/messages/notifications');
+  };
+  
+  const handleSystemMessagesClick = () => {
+    navigate('/messages/system');
+  };
+  
+  const handleSearchClick = () => {
+    navigate('/messages/search');
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col pb-16">
       <StatusBar />
       
-      <div className="flex justify-center items-center py-2">
-        <h1 className="text-xl font-medium">消息</h1>
-        <button className="absolute right-4">
-          <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-          </svg>
+      <div className="p-4 bg-white border-b border-gray-100 flex justify-between items-center">
+        <h1 className="text-lg font-medium">消息</h1>
+        <button onClick={handleSearchClick}>
+          <Search className="h-6 w-6" />
         </button>
       </div>
       
-      <NotificationFilter onFilterClick={handleFilterClick} />
-      
-      <NotificationTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      <div className="flex-1">
-        {activeTab === 'chat' && (
-          <>
-            {loading ? (
-              <div className="flex justify-center items-center p-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            ) : messages.length > 0 ? (
-              <div className="divide-y divide-gray-100">
-                {messages.map(message => (
-                  <UserMessage
-                    key={message.id}
-                    avatar={message.avatar || "/placeholder.svg"}
-                    name={message.name}
-                    message={message.is_sender ? `你: ${message.content}` : message.content}
-                    time={formatTime(message.created_at)}
-                    onClick={() => handleUserClick(message.partner_id)}
-                    isOnline={Math.random() > 0.5} // Random online status for demo
-                    unreadCount={!message.read && !message.is_sender ? 1 : 0}
-                  />
-                ))}
-                <UserMessage 
-                  avatar="/placeholder.svg"
-                  name="Mimi"
-                  message="很高兴认识你！"
-                  time="12:30"
-                  onClick={() => handleUserClick('mimi123')}
-                  isOnline={true}
-                />
-                <UserMessage 
-                  avatar="/placeholder.svg"
-                  name="冰冰"
-                  message="你好，想一起去看电影吗？"
-                  time="昨天"
-                  onClick={() => handleUserClick('bingbing456')}
-                />
-                <UserMessage 
-                  avatar="/placeholder.svg"
-                  name="小李"
-                  message="有空聊聊吗？"
-                  time="周一"
-                  onClick={() => handleUserClick('xiaoli789')}
-                  unreadCount={2}
-                />
-              </div>
-            ) : (
-              <EmptyState 
-                description="还没有一起聊天的朋友，快去匹配交朋友吧"
-              />
-            )}
-          </>
-        )}
+      <div className="bg-white">
+        <div className="flex p-4 border-b border-gray-100">
+          <div 
+            className="flex-1 flex items-center cursor-pointer"
+            onClick={handleNotificationsClick}
+          >
+            <div className="relative">
+              <Bell className="h-6 w-6 text-gray-600" />
+              {unreadMessageCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                </span>
+              )}
+            </div>
+            <div className="ml-3">
+              <h3 className="font-medium">通知</h3>
+              <p className="text-xs text-gray-500">查看你的通知</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400 self-center" />
+        </div>
         
-        {activeTab === 'match' && (
-          <EmptyState 
-            description="暂无匹配消息"
-          />
-        )}
+        <div 
+          className="flex p-4 border-b border-gray-100 cursor-pointer"
+          onClick={handleSystemMessagesClick}
+        >
+          <div className="flex-1 flex items-center">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="font-medium">系统消息</h3>
+              <p className="text-xs text-gray-500">查看系统通知</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400 self-center" />
+        </div>
       </div>
+      
+      {loading ? (
+        <div className="flex justify-center items-center p-6">
+          <div className="animate-spin h-8 w-8 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+        </div>
+      ) : (
+        <>
+          {messages.length > 0 ? (
+            <div className="flex-1">
+              <h2 className="px-4 py-2 text-sm font-medium text-gray-500">私信</h2>
+              {messages.map((message) => (
+                <div 
+                  key={message.user_id} 
+                  className="flex p-4 border-b border-gray-100 cursor-pointer"
+                  onClick={() => handleChatClick(message.user_id)}
+                >
+                  <div className="relative">
+                    <UserAvatar src={message.avatar} />
+                    {message.unread && (
+                      <span className="absolute top-0 right-0 bg-red-500 h-3 w-3 rounded-full border-2 border-white"></span>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between">
+                      <h3 className="font-medium">{message.nickname}</h3>
+                      <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 truncate">{message.lastMessage}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-6">
+              <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <p className="text-gray-500">暂无消息</p>
+              <p className="text-sm text-gray-400 mt-1">去匹配页面认识新朋友吧</p>
+              <button 
+                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-full text-sm"
+                onClick={() => navigate('/match')}
+              >
+                去匹配
+              </button>
+            </div>
+          )}
+        </>
+      )}
       
       <TabBar />
     </div>

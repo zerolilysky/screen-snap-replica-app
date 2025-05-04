@@ -24,21 +24,30 @@ const CpSpace: React.FC = () => {
   const fetchCouples = async () => {
     setLoading(true);
     try {
-      // Use the correct column hints to avoid embedding errors
+      // Fix the query by specifically naming columns in the join
       const { data, error } = await supabase
         .from('couples')
         .select(`
           id,
           name,
           created_at,
-          user1:user1_id(id, nickname, avatar),
-          user2:user2_id(id, nickname, avatar)
+          user1:user1_id(
+            id,
+            nickname,
+            avatar
+          ),
+          user2:user2_id(
+            id,
+            nickname,
+            avatar
+          )
         `)
         .order('created_at', { ascending: false })
         .limit(20);
       
       if (error) throw error;
       
+      // Safely format the couples data
       const formattedCouples: Couple[] = data.map(couple => ({
         id: couple.id,
         name: couple.name || '未命名CP',
@@ -69,7 +78,6 @@ const CpSpace: React.FC = () => {
   };
 
   const handleCreateCP = () => {
-    // Navigate to CP creation page or show modal
     navigate('/profile/cp-space/create');
   };
 

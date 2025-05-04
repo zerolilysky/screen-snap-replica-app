@@ -31,6 +31,7 @@ import Chat from "./pages/Chat";
 import DiscussionTopic from "./pages/DiscussionTopic";
 import Concepts from "./pages/Concepts";
 import ConceptDetail from "./pages/ConceptDetail";
+import PostDetail from "./pages/PostDetail";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/chat/:id" element={<Chat />} />
             <Route path="/community" element={<Community />} />
             <Route path="/community/post" element={<CreatePost />} />
+            <Route path="/community/post/:id" element={<PostDetail />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/discover/discussions" element={<DiscussionTopic />} />
             <Route path="/discover/discussion/:id" element={<DiscussionTopic />} />

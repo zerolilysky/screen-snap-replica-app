@@ -28,10 +28,6 @@ const Match: React.FC = () => {
     navigate(`/match/${type}`);
   };
   
-  const handlePurchaseCard = () => {
-    navigate('/match/purchase');
-  };
-  
   return <div className="min-h-screen bg-app-dark flex flex-col pb-16">
       <StatusBar />
       
@@ -76,21 +72,7 @@ const Match: React.FC = () => {
             <p className="text-xs mt-1 text-gray-400">tips: 礼貌的打招呼，对方才会有好的回应</p>
           </div>
           
-          <div className="px-4 py-3 bg-opacity-20 bg-gray-700 mx-4 rounded-xl flex items-center cursor-pointer" onClick={handlePurchaseCard}>
-            <div className="flex-shrink-0">
-              <div className="h-12 w-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold">
-                VIP
-              </div>
-            </div>
-            <div className="ml-3 flex-1">
-              <span className="text-white">购买匹配卡</span>
-            </div>
-            <div>
-              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-            </div>
-          </div>
+          {/* Removed the purchase card section */}
           
           <div className="absolute right-4 top-32">
             <div className="bg-white bg-opacity-10 rounded-full p-2">

@@ -74,18 +74,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
       return;
     }
     
-    setShowComments(!showComments);
-    
-    if (!showComments && comments.length === 0) {
-      await fetchComments();
-    }
-    
-    // Focus on the comment input
-    if (!showComments && commentInputRef.current) {
-      setTimeout(() => {
-        commentInputRef.current?.focus();
-      }, 100);
-    }
+    // Navigate to post detail page
+    navigate(`/community/post/${post.id}`);
   };
   
   const fetchComments = async () => {
@@ -166,6 +156,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
     }
   };
 
+  const handlePostClick = () => {
+    if (isInteractive) {
+      navigate(`/community/post/${post.id}`);
+    }
+  };
+
   return (
     <div className="border-b border-gray-100 p-4">
       <div className="flex items-start">
@@ -193,19 +189,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
               </>
             )}
           </div>
-          <p className="mt-2">{post.content}</p>
-          {post.image && (
-            <div className="mt-2 rounded-lg overflow-hidden">
-              <img src={post.image} alt="Post" className="w-full h-auto" />
-            </div>
-          )}
-          {post.tags && post.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap">
-              {post.tags.map((tag, index) => (
-                <span key={index} className="text-blue-500 text-sm mr-2">#{tag}</span>
-              ))}
-            </div>
-          )}
+          <div className={isInteractive ? "cursor-pointer" : ""} onClick={handlePostClick}>
+            <p className="mt-2">{post.content}</p>
+            {post.image && (
+              <div className="mt-2 rounded-lg overflow-hidden">
+                <img src={post.image} alt="Post" className="w-full h-auto" />
+              </div>
+            )}
+            {post.tags && post.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap">
+                {post.tags.map((tag, index) => (
+                  <span key={index} className="text-blue-500 text-sm mr-2">#{tag}</span>
+                ))}
+              </div>
+            )}
+          </div>
           
           {isInteractive && (
             <div className="mt-3 flex justify-around">
@@ -230,76 +228,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isInteractive = false }) => {
                 <Share2 className="h-5 w-5 mr-1" />
                 <span>分享</span>
               </button>
-            </div>
-          )}
-          
-          {showComments && (
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              <h4 className="font-medium text-sm mb-2">评论</h4>
-              
-              {isLoadingComments ? (
-                <div className="flex justify-center py-3">
-                  <div className="animate-spin h-5 w-5 border-2 border-gray-500 rounded-full border-t-transparent"></div>
-                </div>
-              ) : (
-                <>
-                  {comments.length > 0 ? (
-                    <div className="space-y-3">
-                      {comments.map((comment) => (
-                        <div key={comment.id} className="flex items-start">
-                          <img 
-                            src={comment.profiles?.avatar || "/placeholder.svg"} 
-                            alt={comment.profiles?.nickname} 
-                            className="h-8 w-8 rounded-full mr-2" 
-                          />
-                          <div>
-                            <div className="bg-gray-50 rounded-lg px-3 py-2">
-                              <p className="font-medium text-sm">{comment.profiles?.nickname || "用户"}</p>
-                              <p className="text-sm">{comment.content}</p>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {new Date(comment.created_at).toLocaleString('zh-CN', { 
-                                month: 'numeric', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-gray-500">
-                      暂无评论，快来发表第一条评论吧
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center mt-3">
-                    <input
-                      ref={commentInputRef}
-                      type="text"
-                      className="flex-1 border border-gray-300 rounded-full py-2 px-4 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="写评论..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          submitComment();
-                        }
-                      }}
-                    />
-                    <Button 
-                      onClick={submitComment} 
-                      className="ml-2 rounded-full p-2 h-auto" 
-                      disabled={!commentText.trim()}
-                      size="sm"
-                    >
-                      <Send size={18} />
-                    </Button>
-                  </div>
-                </>
-              )}
             </div>
           )}
         </div>
