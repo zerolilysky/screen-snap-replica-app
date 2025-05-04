@@ -9,6 +9,7 @@ import MatchRadar from '../components/MatchRadar';
 import MatchOptions from '../components/MatchOptions';
 import { currentUser, nearbyUsers } from '../data/mockData';
 import { useAuth } from '../contexts/AuthContext';
+import { Search } from 'lucide-react';
 
 const Match: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +20,14 @@ const Match: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState<'match' | 'friends'>('match');
   const onlineCount = 47914;
+  
+  const handleTabChange = (tab: 'match' | 'friends') => {
+    if (tab === 'friends') {
+      navigate('/friends');
+    } else {
+      setActiveTab(tab);
+    }
+  };
   
   const handleUserClick = (userId: string) => {
     navigate(`/user/${userId}`);
@@ -39,10 +48,10 @@ const Match: React.FC = () => {
             </svg>
           </button>
           
-          <MatchTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <MatchTabs activeTab={activeTab} onTabChange={handleTabChange} />
           
-          <button className="border border-gray-600 text-white text-xs px-3 py-1.5 rounded-full">
-            设置匹配倾向
+          <button className="flex items-center justify-center w-8 h-8">
+            <Search className="h-6 w-6 text-gray-400" />
           </button>
         </div>
       </div>
@@ -64,22 +73,20 @@ const Match: React.FC = () => {
         </div>
       </div>
       
-      {activeTab === 'match' && <>
-          <MatchRadar users={nearbyUsers} center={currentUser} onUserClick={handleUserClick} />
-          
-          <div className="text-center text-gray-300 mb-1">
-            <p className="font-medium">当前 {onlineCount} 人正在匹配</p>
-            <p className="text-xs mt-1 text-gray-400">tips: 礼貌的打招呼，对方才会有好的回应</p>
-          </div>
-          
-          <div className="absolute right-4 top-32">
-            <div className="bg-white bg-opacity-10 rounded-full p-2">
-              <span className="text-purple-300">精准</span>
-            </div>
-          </div>
-          
-          <MatchOptions onOptionClick={handleMatchOptionClick} />
-        </>}
+      <MatchRadar users={nearbyUsers} center={currentUser} onUserClick={handleUserClick} />
+      
+      <div className="text-center text-gray-300 mb-1">
+        <p className="font-medium">当前 {onlineCount} 人正在匹配</p>
+        <p className="text-xs mt-1 text-gray-400">tips: 礼貌的打招呼，对方才会有好的回应</p>
+      </div>
+      
+      <div className="absolute right-4 top-32">
+        <div className="bg-white bg-opacity-10 rounded-full p-2">
+          <span className="text-purple-300">精准</span>
+        </div>
+      </div>
+      
+      <MatchOptions onOptionClick={handleMatchOptionClick} />
       
       <TabBar />
     </div>;

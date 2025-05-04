@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
 import TabBar from '../components/TabBar';
 import MatchTabs from '../components/MatchTabs';
@@ -12,17 +13,26 @@ import { topics, feedPosts, currentUser } from '../data/mockData';
 import { Search } from 'lucide-react';
 
 const Friends: React.FC = () => {
+  const navigate = useNavigate();
   const [activeMainTab, setActiveMainTab] = useState<'match' | 'friends'>('friends');
   const [activeFeedTab, setActiveFeedTab] = useState<'activity' | 'nearby' | 'recommend'>('activity');
+  
+  const handleTabChange = (tab: 'match' | 'friends') => {
+    if (tab === 'match') {
+      navigate('/match');
+    } else {
+      setActiveMainTab(tab);
+    }
+  };
   
   return (
     <div className="min-h-screen bg-white flex flex-col pb-16">
       <StatusBar />
       
       <div className="flex justify-between items-center px-4 pt-2 pb-4">
-        <div className="w-24"></div>
-        <MatchTabs activeTab={activeMainTab} onTabChange={setActiveMainTab} />
-        <button className="w-24 flex justify-end">
+        <div className="w-8"></div>
+        <MatchTabs activeTab={activeMainTab} onTabChange={handleTabChange} />
+        <button className="w-8 flex justify-end">
           <Search className="h-6 w-6" />
         </button>
       </div>
