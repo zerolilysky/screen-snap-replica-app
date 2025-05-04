@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
@@ -23,15 +24,23 @@ const CpSpace: React.FC = () => {
   const fetchCouples = async () => {
     setLoading(true);
     try {
-      // Specifically naming the columns in the join to fix the TypeScript error
+      // Specify explicit columns for profiles to fix the TypeScript error
       const { data, error } = await supabase
         .from('couples')
         .select(`
           id,
           name,
           created_at,
-          user1:user1_id(id, nickname, avatar),
-          user2:user2_id(id, nickname, avatar)
+          user1:user1_id(
+            id:id, 
+            nickname:nickname, 
+            avatar:avatar
+          ),
+          user2:user2_id(
+            id:id, 
+            nickname:nickname, 
+            avatar:avatar
+          )
         `)
         .order('created_at', { ascending: false })
         .limit(20);

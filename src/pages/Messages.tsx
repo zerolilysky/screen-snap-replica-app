@@ -54,7 +54,11 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          sender:sender_id(id, nickname, avatar)
+          sender:sender_id(
+            id:id,
+            nickname:nickname,
+            avatar:avatar
+          )
         `)
         .eq('receiver_id', user?.id)
         .order('created_at', { ascending: false });
@@ -70,7 +74,11 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          receiver:receiver_id(id, nickname, avatar)
+          receiver:receiver_id(
+            id:id,
+            nickname:nickname,
+            avatar:avatar
+          )
         `)
         .eq('sender_id', user?.id)
         .order('created_at', { ascending: false });
