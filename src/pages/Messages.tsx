@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
@@ -44,7 +43,7 @@ const Messages: React.FC = () => {
     
     setLoading(true);
     try {
-      // Use explicit column names to fix the "Could not embed" error
+      // Fix the query to use explicit column names with proper hints
       const { data: senders, error: sendersError } = await supabase
         .from('messages')
         .select(`
@@ -53,11 +52,7 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          sender:sender_id (
-            id:id,
-            nickname:nickname,
-            avatar:avatar
-          )
+          sender:profiles!sender_id(id, nickname, avatar)
         `)
         .eq('receiver_id', user.id)
         .order('sender_id', { ascending: true })
@@ -74,11 +69,7 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          receiver:receiver_id (
-            id:id,
-            nickname:nickname,
-            avatar:avatar
-          )
+          receiver:profiles!receiver_id(id, nickname, avatar)
         `)
         .eq('sender_id', user.id)
         .order('receiver_id', { ascending: true })

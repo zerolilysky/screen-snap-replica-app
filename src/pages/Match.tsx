@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
@@ -8,23 +9,29 @@ import MatchRadar from '../components/MatchRadar';
 import MatchOptions from '../components/MatchOptions';
 import { currentUser, nearbyUsers } from '../data/mockData';
 import { useAuth } from '../contexts/AuthContext';
+
 const Match: React.FC = () => {
   const navigate = useNavigate();
   const {
     user,
     profile
   } = useAuth();
+  
   const [activeTab, setActiveTab] = useState<'match' | 'friends'>('match');
   const onlineCount = 47914;
+  
   const handleUserClick = (userId: string) => {
     navigate(`/user/${userId}`);
   };
+  
   const handleMatchOptionClick = (type: string) => {
     navigate(`/match/${type}`);
   };
+  
   const handlePurchaseCard = () => {
     navigate('/match/purchase');
   };
+  
   return <div className="min-h-screen bg-app-dark flex flex-col pb-16">
       <StatusBar />
       
@@ -71,7 +78,9 @@ const Match: React.FC = () => {
           
           <div className="px-4 py-3 bg-opacity-20 bg-gray-700 mx-4 rounded-xl flex items-center cursor-pointer" onClick={handlePurchaseCard}>
             <div className="flex-shrink-0">
-              <img alt="Card" className="h-12 w-12" src="/lovable-uploads/1424cfdd-5a4d-4491-a122-374382dfac9f.png" />
+              <div className="h-12 w-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold">
+                VIP
+              </div>
             </div>
             <div className="ml-3 flex-1">
               <span className="text-white">购买匹配卡</span>
@@ -95,4 +104,5 @@ const Match: React.FC = () => {
       <TabBar />
     </div>;
 };
+
 export default Match;
