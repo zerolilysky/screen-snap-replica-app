@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
@@ -43,12 +44,19 @@ const Messages: React.FC = () => {
     
     setLoading(true);
     try {
-      // Get distinct conversations with the latest message first
+      // Get distinct conversations with the latest message first for messages received
       const { data: senders, error: sendersError } = await supabase
         .from('messages')
         .select(`
-          distinct on (sender_id) *,
-          profiles:sender_id (nickname, avatar)
+          id,
+          sender_id,
+          content,
+          created_at,
+          read,
+          profiles:sender_id (
+            nickname, 
+            avatar
+          )
         `)
         .eq('receiver_id', user.id)
         .order('sender_id', { ascending: true })
@@ -60,8 +68,15 @@ const Messages: React.FC = () => {
       const { data: receivers, error: receiversError } = await supabase
         .from('messages')
         .select(`
-          distinct on (receiver_id) *,
-          profiles:receiver_id (nickname, avatar)
+          id,
+          receiver_id,
+          content,
+          created_at,
+          read,
+          profiles:receiver_id (
+            nickname, 
+            avatar
+          )
         `)
         .eq('sender_id', user.id)
         .order('receiver_id', { ascending: true })
@@ -70,27 +85,27 @@ const Messages: React.FC = () => {
       if (receiversError) throw receiversError;
       
       // Combine and format all messages
-      const formattedSenders = senders.map(message => ({
+      const formattedSenders = senders ? senders.map(message => ({
         id: message.id,
         partner_id: message.sender_id,
         content: message.content,
         created_at: message.created_at,
-        name: message.profiles.nickname,
-        avatar: message.profiles.avatar,
+        name: message.profiles?.nickname || 'Unknown',
+        avatar: message.profiles?.avatar || '/placeholder.svg',
         read: message.read || false,
         is_sender: false
-      }));
+      })) : [];
       
-      const formattedReceivers = receivers.map(message => ({
+      const formattedReceivers = receivers ? receivers.map(message => ({
         id: message.id,
         partner_id: message.receiver_id,
         content: message.content,
         created_at: message.created_at,
-        name: message.profiles.nickname,
-        avatar: message.profiles.avatar,
+        name: message.profiles?.nickname || 'Unknown',
+        avatar: message.profiles?.avatar || '/placeholder.svg',
         read: true, // Messages sent by the user are always read
         is_sender: true
-      }));
+      })) : [];
       
       // Merge conversations and sort by latest message
       const allConversations = [...formattedSenders, ...formattedReceivers];

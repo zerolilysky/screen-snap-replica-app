@@ -4,6 +4,8 @@ export interface Topic {
   title: string;
   icon?: string;
   color?: string;
+  participants?: number;
+  timeRange?: string;
 }
 
 export interface Article {
@@ -14,6 +16,8 @@ export interface Article {
   date: string;
   image?: string;
   tags?: string[];
+  likes?: number;
+  comments?: number;
 }
 
 export interface Concept {
@@ -34,12 +38,25 @@ export interface Post {
     location?: string;
     gender: 'male' | 'female' | 'unknown';
     verified?: boolean;
+    online?: boolean;
   };
   likes: number;
   comments: number;
   time: string;
   image?: string;
   tags?: string[];
+}
+
+export interface User {
+  id: string;
+  name: string;
+  avatar: string;
+  gender?: string;
+  verified?: boolean;
+  profileCompleted?: boolean;
+  distance?: string;
+  online?: boolean;
+  location?: string;
 }
 
 export interface MatchOption {
@@ -64,4 +81,9 @@ export interface Couple {
     nickname: string;
     avatar: string;
   };
+  // Legacy properties for backward compatibility
+  leftUser?: string;
+  rightUser?: string;
+  imageLeft?: string;
+  imageRight?: string;
 }

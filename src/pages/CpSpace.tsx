@@ -1,65 +1,75 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
-import { ArrowLeft, Heart, Search, Plus } from 'lucide-react';
-import EmptyState from '../components/EmptyState';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
-interface Couple {
-  id: string;
-  name: string;
-  user1: {
-    id: string;
-    nickname: string;
-    avatar: string;
-  };
-  user2: {
-    id: string;
-    nickname: string;
-    avatar: string;
-  };
-  created_at: string;
-}
+import { Couple } from '@/types';
 
 const CpSpace: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [couples, setCouples] = useState<Couple[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [couples, setCouples] = useState<Couple[]>([]);
+  
   useEffect(() => {
     if (user) {
       fetchCouples();
-    } else {
-      setLoading(false);
     }
   }, [user]);
-
+  
   const fetchCouples = async () => {
+    if (!user) return;
+    
     try {
+      setLoading(true);
+      
+      // Fetch couples where the current user is part of
       const { data, error } = await supabase
         .from('couples')
         .select(`
           id,
           name,
           created_at,
-          user1:user1_id(id, nickname, avatar),
-          user2:user2_id(id, nickname, avatar)
+          user1:user1_id (
+            id,
+            nickname,
+            avatar
+          ),
+          user2:user2_id (
+            id,
+            nickname,
+            avatar
+          )
         `)
-        .or(`user1_id.eq.${user!.id},user2_id.eq.${user!.id}`);
-        
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      
       if (error) throw error;
       
-      setCouples(data || []);
-    } catch (error: any) {
-      console.error('获取CP关系错误:', error.message);
+      if (data) {
+        const formattedCouples: Couple[] = data.map(couple => ({
+          id: couple.id,
+          name: couple.name,
+          created_at: couple.created_at,
+          user1: {
+            id: couple.user1?.id || '',
+            nickname: couple.user1?.nickname || 'Unknown',
+            avatar: couple.user1?.avatar || '/placeholder.svg',
+          },
+          user2: {
+            id: couple.user2?.id || '',
+            nickname: couple.user2?.nickname || 'Unknown',
+            avatar: couple.user2?.avatar || '/placeholder.svg',
+          }
+        }));
+        setCouples(formattedCouples);
+      }
+    } catch (error) {
+      console.error('Error fetching couples:', error);
       toast({
-        title: "获取CP关系失败",
-        description: error.message,
+        title: "获取CP失败",
+        description: "无法加载您的CP关系",
         variant: "destructive"
       });
     } finally {

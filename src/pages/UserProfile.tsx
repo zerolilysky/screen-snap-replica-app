@@ -27,7 +27,7 @@ interface PersonalityData {
 }
 
 const UserProfile: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -48,7 +48,37 @@ const UserProfile: React.FC = () => {
   const fetchUserProfile = async () => {
     setLoading(true);
     try {
-      // Record profile view
+      // Validate if the id is a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const isValidUuid = id && uuidRegex.test(id);
+      
+      if (!isValidUuid) {
+        // For mock data users (non-UUID ids)
+        const mockUsers = [
+          {
+            id: id,
+            nickname: 'Mock User ' + id,
+            avatar: "/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png",
+            gender: 'female',
+            birth_date: '1995-01-01',
+            location: '上海市',
+            tagline: '这是一个模拟用户账号',
+            relationship_status: '单身',
+            personality_type: 'ENFP'
+          }
+        ];
+        
+        setProfileData(mockUsers[0]);
+        setPersonalityData({
+          extraversion: 75,
+          sensing: 60,
+          thinking: 40
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Record profile view only if both IDs are valid UUIDs
       if (user && id && user.id !== id) {
         await supabase
           .from('profile_views')
@@ -103,6 +133,16 @@ const UserProfile: React.FC = () => {
     
     if (id) {
       try {
+        // Validate if the id is a valid UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const isValidUuid = uuidRegex.test(id);
+        
+        if (!isValidUuid) {
+          // For mock data, navigate directly to chat
+          navigate(`/chat/${id}`);
+          return;
+        }
+        
         // Create initial message if there's no conversation yet
         const { data: existingMessages, error: checkError } = await supabase
           .from('messages')
