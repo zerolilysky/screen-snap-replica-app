@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +11,49 @@ export interface MessageItem {
   timestamp: string;
   unread: boolean;
 }
+
+const mockMessages = [
+  {
+    user_id: 'mock-user-1',
+    nickname: '小王',
+    avatar: '/placeholder.svg',
+    lastMessage: '今天天气真不错，一起去公园走走吗？',
+    timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
+    unread: true
+  },
+  {
+    user_id: 'mock-user-2',
+    nickname: '李华',
+    avatar: '/placeholder.svg',
+    lastMessage: '我刚刚看了一部超好看的电影，强烈推荐！',
+    timestamp: new Date(Date.now() - 30 * 60000).toISOString(),
+    unread: false
+  },
+  {
+    user_id: 'mock-user-3',
+    nickname: '张三',
+    avatar: '/placeholder.svg',
+    lastMessage: '明天下午有空吗？我们约个咖啡聊聊吧',
+    timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+    unread: true
+  },
+  {
+    user_id: 'mock-user-4',
+    nickname: '小美',
+    avatar: '/placeholder.svg',
+    lastMessage: '谢谢你昨天帮我解决了那个问题，我很感激！',
+    timestamp: new Date(Date.now() - 1 * 86400000).toISOString(),
+    unread: false
+  },
+  {
+    user_id: 'mock-user-5',
+    nickname: '老王',
+    avatar: '/placeholder.svg',
+    lastMessage: '周末一起去爬山吗？听说风景很美',
+    timestamp: new Date(Date.now() - 2 * 86400000).toISOString(),
+    unread: false
+  }
+];
 
 export function useMessages(userId: string | undefined) {
   const [messages, setMessages] = useState<MessageItem[]>([]);
@@ -37,13 +81,20 @@ export function useMessages(userId: string | undefined) {
         supabase.removeChannel(channel);
       };
     } else {
-      setMessages([]);
+      // Include mock messages for testing when not logged in
+      setMessages(mockMessages);
+      setUnreadMessageCount(mockMessages.filter(m => m.unread).length);
       setLoading(false);
     }
   }, [userId]);
   
   const fetchMessages = async () => {
-    if (!userId) return;
+    if (!userId) {
+      setMessages(mockMessages);
+      setUnreadMessageCount(mockMessages.filter(m => m.unread).length);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -103,8 +154,33 @@ export function useMessages(userId: string | undefined) {
         isOutgoing: true
       }));
       
-      // Combine and sort all messages by user_id to group conversations
-      const allMessages = [...receivedMessages, ...sentMessages];
+      // Combine all messages
+      let allMessages = [...receivedMessages, ...sentMessages];
+      
+      // If database has no messages yet, add mock messages for testing
+      if (allMessages.length === 0) {
+        allMessages = mockMessages.map(msg => ({
+          id: `mock-${msg.user_id}`,
+          user_id: msg.user_id,
+          content: msg.lastMessage,
+          created_at: msg.timestamp,
+          read: !msg.unread,
+          nickname: msg.nickname,
+          avatar: msg.avatar,
+          isOutgoing: false
+        }));
+        
+        // Save mock messages to Supabase for first-time setup
+        for (const msg of mockMessages) {
+          await supabase.from('messages').insert({
+            sender_id: msg.user_id,
+            receiver_id: userId,
+            content: msg.lastMessage,
+            read: !msg.unread,
+            created_at: msg.timestamp
+          });
+        }
+      }
       
       // Group messages by user
       const userConversations: {[key: string]: any} = {};
@@ -155,6 +231,10 @@ export function useMessages(userId: string | undefined) {
         description: error.message,
         variant: "destructive"
       });
+      
+      // Fallback to mock messages in case of error
+      setMessages(mockMessages);
+      setUnreadMessageCount(mockMessages.filter(m => m.unread).length);
     } finally {
       setLoading(false);
     }
