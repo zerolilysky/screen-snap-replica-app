@@ -62,12 +62,21 @@ const Discover: React.FC = () => {
       <section className="py-4">
         <div className="flex justify-between items-center px-4 mb-2">
           <h2 className="font-medium">正在讨论</h2>
-          <button className="text-gray-500 text-sm">更多 &gt;</button>
+          <button 
+            className="text-gray-500 text-sm"
+            onClick={() => navigate('/discover/discussions')}
+          >
+            更多 &gt;
+          </button>
         </div>
         
         <div className="grid grid-cols-2 gap-4 px-4">
           {trends.map(trend => (
-            <div key={trend.id} className="bg-gray-50 rounded-lg p-3">
+            <div 
+              key={trend.id} 
+              className="bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition-colors"
+              onClick={() => navigate(`/discover/discussion/${trend.id}`)}
+            >
               <div className="flex items-center">
                 <span className="text-lg mr-1">{trend.icon}</span>
                 <span className="text-sm font-medium">#{trend.title}</span>
@@ -89,7 +98,37 @@ const Discover: React.FC = () => {
           </button>
         </div>
         
-        <Couples couples={couples} />
+        <div className="px-4">
+          <div className="bg-gradient-to-r from-pink-100 to-purple-100 rounded-lg p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium text-pink-700">热门CP配对</h3>
+              <span className="text-xs text-purple-600">查看全部</span>
+            </div>
+            
+            <div className="flex space-x-3">
+              <div className="flex items-center bg-white rounded-full px-3 py-2 shadow-sm">
+                <img src="/placeholder.svg" alt="用户1" className="h-8 w-8 rounded-full" />
+                <span className="mx-2 text-pink-500">❤</span>
+                <img src="/placeholder.svg" alt="用户2" className="h-8 w-8 rounded-full" />
+                <span className="ml-2 text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">94%匹配</span>
+              </div>
+              
+              <div className="flex items-center bg-white rounded-full px-3 py-2 shadow-sm">
+                <img src="/placeholder.svg" alt="用户3" className="h-8 w-8 rounded-full" />
+                <span className="mx-2 text-pink-500">❤</span>
+                <img src="/placeholder.svg" alt="用户4" className="h-8 w-8 rounded-full" />
+                <span className="ml-2 text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">87%匹配</span>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={() => navigate('/profile/cp-space')} 
+              className="w-full mt-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+            >
+              查看我的CP潜力
+            </Button>
+          </div>
+        </div>
       </section>
       
       <section className="mb-4">
@@ -108,12 +147,21 @@ const Discover: React.FC = () => {
       <section className="py-4">
         <div className="flex justify-between items-center px-4 mb-2">
           <h2 className="font-medium">明白科普</h2>
-          <button className="text-gray-500 text-sm">更多 &gt;</button>
+          <button 
+            className="text-gray-500 text-sm"
+            onClick={() => navigate('/discover/concepts')}
+          >
+            更多 &gt;
+          </button>
         </div>
         
         <div className="grid grid-cols-2 gap-4 px-4">
           {concepts.map(concept => (
-            <ConceptCard key={concept.id} concept={concept} />
+            <ConceptCard 
+              key={concept.id} 
+              concept={concept} 
+              onClick={() => navigate(`/discover/concept/${concept.id}`)}
+            />
           ))}
         </div>
       </section>

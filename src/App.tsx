@@ -27,6 +27,10 @@ import CreatePost from "./pages/CreatePost";
 import MessageDetail from "./pages/MessageDetail";
 import MatchDetail from "./pages/MatchDetail";
 import UserProfile from "./pages/UserProfile";
+import Chat from "./pages/Chat";
+import DiscussionTopic from "./pages/DiscussionTopic";
+import Concepts from "./pages/Concepts";
+import ConceptDetail from "./pages/ConceptDetail";
 
 const queryClient = new QueryClient();
 
@@ -43,9 +47,14 @@ const App = () => (
             <Route path="/friends" element={<Friends />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/messages/:type" element={<MessageDetail />} />
+            <Route path="/chat/:id" element={<Chat />} />
             <Route path="/community" element={<Community />} />
             <Route path="/community/post" element={<CreatePost />} />
             <Route path="/discover" element={<Discover />} />
+            <Route path="/discover/discussions" element={<DiscussionTopic />} />
+            <Route path="/discover/discussion/:id" element={<DiscussionTopic />} />
+            <Route path="/discover/concepts" element={<Concepts />} />
+            <Route path="/discover/concept/:id" element={<ConceptDetail />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/views" element={<ProfileViews />} />
             <Route path="/profile/posts" element={<UserPosts />} />
