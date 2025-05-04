@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,9 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import StatusBar from '../components/StatusBar';
-
 const PostDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,11 +22,14 @@ const PostDetail: React.FC = () => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
   const commentInputRef = useRef<HTMLInputElement>(null);
-  
   useEffect(() => {
     if (id) {
       fetchPost(id);
@@ -32,14 +37,13 @@ const PostDetail: React.FC = () => {
       checkIfLiked(id);
     }
   }, [id, user]);
-  
   const fetchPost = async (postId: string) => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('posts').select(`
           *,
           profiles!posts_user_id_fkey (
             id, 
@@ -47,54 +51,51 @@ const PostDetail: React.FC = () => {
             avatar,
             location
           )
-        `)
-        .eq('id', postId)
-        .single();
-      
+        `).eq('id', postId).single();
       if (error) throw error;
-      
+
       // Also fetch post images
-      const { data: imageData, error: imageError } = await supabase
-        .from('post_images')
-        .select('image_url')
-        .eq('post_id', postId);
-        
+      const {
+        data: imageData,
+        error: imageError
+      } = await supabase.from('post_images').select('image_url').eq('post_id', postId);
       if (imageError) throw imageError;
-      
+
       // Also fetch post tags
-      const { data: tagData, error: tagError } = await supabase
-        .from('post_tags')
-        .select('tag')
-        .eq('post_id', postId);
-      
+      const {
+        data: tagData,
+        error: tagError
+      } = await supabase.from('post_tags').select('tag').eq('post_id', postId);
       if (tagError) throw tagError;
-      
+
       // Count likes
-      const { count: likeCountData, error: likeCountError } = await supabase
-        .from('likes')
-        .select('id', { count: 'exact', head: true })
-        .eq('post_id', postId);
-      
+      const {
+        count: likeCountData,
+        error: likeCountError
+      } = await supabase.from('likes').select('id', {
+        count: 'exact',
+        head: true
+      }).eq('post_id', postId);
       if (likeCountError) throw likeCountError;
-      
+
       // Count comments
-      const { count: commentCountData, error: commentCountError } = await supabase
-        .from('comments')
-        .select('id', { count: 'exact', head: true })
-        .eq('post_id', postId);
-      
+      const {
+        count: commentCountData,
+        error: commentCountError
+      } = await supabase.from('comments').select('id', {
+        count: 'exact',
+        head: true
+      }).eq('post_id', postId);
       if (commentCountError) throw commentCountError;
-      
+
       // Add images and tags to the post object
       setPost({
         ...data,
         images: imageData || [],
-        tags: tagData?.map((t) => t.tag) || []
+        tags: tagData?.map(t => t.tag) || []
       });
-      
       setLikeCount(likeCountData || 0);
       setCommentCount(commentCountData || 0);
-      
     } catch (error: any) {
       console.error('Error fetching post:', error.message);
       toast({
@@ -106,28 +107,24 @@ const PostDetail: React.FC = () => {
       setLoading(false);
     }
   };
-  
   const fetchComments = async (postId: string) => {
     try {
       setCommentLoading(true);
-      
-      const { data, error } = await supabase
-        .from('comments')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('comments').select(`
           *,
           profiles!comments_user_id_fkey (
             id, 
             nickname, 
             avatar
           )
-        `)
-        .eq('post_id', postId)
-        .order('created_at', { ascending: false });
-        
+        `).eq('post_id', postId).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
-      
       setComments(data || []);
-      
     } catch (error: any) {
       console.error('Error fetching comments:', error.message);
       toast({
@@ -139,58 +136,45 @@ const PostDetail: React.FC = () => {
       setCommentLoading(false);
     }
   };
-  
   const checkIfLiked = async (postId: string) => {
     if (!user) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('likes')
-        .select('id')
-        .eq('post_id', postId)
-        .eq('user_id', user.id)
-        .single();
-        
+      const {
+        data,
+        error
+      } = await supabase.from('likes').select('id').eq('post_id', postId).eq('user_id', user.id).single();
       if (error && error.code !== 'PGRST116') throw error;
-      
       setLiked(!!data);
-      
     } catch (error: any) {
       console.error('Error checking if post is liked:', error.message);
     }
   };
-  
   const handleLike = async () => {
     if (!user) {
       navigate('/auth');
       return;
     }
-    
     try {
       if (!liked) {
         // Add like
-        const { error } = await supabase
-          .from('likes')
-          .insert({ user_id: user.id, post_id: id });
-          
+        const {
+          error
+        } = await supabase.from('likes').insert({
+          user_id: user.id,
+          post_id: id
+        });
         if (error) throw error;
-        
         setLiked(true);
         setLikeCount(prev => prev + 1);
-        
         toast({
           description: "点赞成功"
         });
       } else {
         // Remove like
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('post_id', id);
-          
+        const {
+          error
+        } = await supabase.from('likes').delete().eq('user_id', user.id).eq('post_id', id);
         if (error) throw error;
-        
         setLiked(false);
         setLikeCount(prev => prev - 1);
       }
@@ -203,52 +187,43 @@ const PostDetail: React.FC = () => {
       });
     }
   };
-  
   const handleSubmitComment = async () => {
     if (!user) {
       navigate('/auth');
       return;
     }
-    
     if (!newComment.trim()) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
-          user_id: user.id,
-          post_id: id,
-          content: newComment.trim()
-        })
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('comments').insert({
+        user_id: user.id,
+        post_id: id,
+        content: newComment.trim()
+      }).select(`
           *,
           profiles!comments_user_id_fkey (
             id, 
             nickname, 
             avatar
           )
-        `)
-        .single();
-        
+        `).single();
       if (error) throw error;
-      
       setComments([data, ...comments]);
       setNewComment('');
       setCommentCount(prev => prev + 1);
-      
+
       // Send notification to post owner if it's not the current user
       if (post.user_id !== user.id) {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: post.user_id,
-            actor_id: user.id,
-            post_id: id,
-            comment_id: data.id,
-            type: 'comment'
-          });
+        await supabase.from('notifications').insert({
+          user_id: post.user_id,
+          actor_id: user.id,
+          post_id: id,
+          comment_id: data.id,
+          type: 'comment'
+        });
       }
-      
       toast({
         description: "评论成功"
       });
@@ -261,22 +236,18 @@ const PostDetail: React.FC = () => {
       });
     }
   };
-  
   const handleShare = () => {
     toast({
       description: "分享功能开发中"
     });
   };
-  
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
     if (days > 0) {
       return `${days}天前`;
     } else if (hours > 0) {
@@ -287,10 +258,8 @@ const PostDetail: React.FC = () => {
       return '刚刚';
     }
   };
-  
   if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen">
+    return <div className="flex flex-col min-h-screen">
         <StatusBar />
         <div className="flex items-center p-4 border-b">
           <ArrowLeft className="h-6 w-6 mr-4" onClick={() => navigate(-1)} />
@@ -299,13 +268,10 @@ const PostDetail: React.FC = () => {
         <div className="flex-1 flex items-center justify-center">
           <p>加载中...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-  
   if (!post) {
-    return (
-      <div className="flex flex-col min-h-screen">
+    return <div className="flex flex-col min-h-screen">
         <StatusBar />
         <div className="flex items-center p-4 border-b">
           <ArrowLeft className="h-6 w-6 mr-4" onClick={() => navigate(-1)} />
@@ -314,12 +280,9 @@ const PostDetail: React.FC = () => {
         <div className="flex-1 flex items-center justify-center">
           <p>帖子不存在</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-  
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+  return <div className="flex flex-col min-h-screen bg-gray-50">
       <StatusBar />
       
       {/* Header */}
@@ -359,30 +322,18 @@ const PostDetail: React.FC = () => {
             <p className="text-base">{post.content}</p>
             
             {/* Post images */}
-            {post.images && post.images.length > 0 && (
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {post.images.map((img: any, index: number) => (
-                  <div key={index} className="aspect-square overflow-hidden rounded-md">
-                    <img 
-                      src={img.image_url} 
-                      alt={`Post image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            {post.images && post.images.length > 0 && <div className="mt-3 grid grid-cols-2 gap-2">
+                {post.images.map((img: any, index: number) => <div key={index} className="aspect-square overflow-hidden rounded-md">
+                    <img src={img.image_url} alt={`Post image ${index + 1}`} className="w-full h-full object-cover" />
+                  </div>)}
+              </div>}
             
             {/* Tags */}
-            {post.tags && post.tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap">
-                {post.tags.map((tag: string, index: number) => (
-                  <span key={index} className="mr-2 mt-1 px-3 py-1 bg-gray-100 text-blue-500 rounded-full text-sm">
+            {post.tags && post.tags.length > 0 && <div className="mt-3 flex flex-wrap">
+                {post.tags.map((tag: string, index: number) => <span key={index} className="mr-2 mt-1 px-3 py-1 bg-gray-100 text-blue-500 rounded-full text-sm">
                     # {tag}
-                  </span>
-                ))}
-              </div>
-            )}
+                  </span>)}
+              </div>}
           </div>
           
           {/* Post actions */}
@@ -395,10 +346,7 @@ const PostDetail: React.FC = () => {
                 <Share2 className="h-5 w-5 mr-1" onClick={handleShare} />
                 <span>转发</span>
               </button>
-              <button 
-                className="flex items-center text-gray-500" 
-                onClick={handleLike}
-              >
+              <button className="flex items-center text-gray-500" onClick={handleLike}>
                 <Heart className={`h-5 w-5 mr-1 ${liked ? 'text-red-500 fill-red-500' : ''}`} />
                 <span>{likeCount}</span>
               </button>
@@ -433,7 +381,7 @@ const PostDetail: React.FC = () => {
       <div className="bg-white mb-2 p-4 flex items-center justify-between">
         <p className="text-gray-700">快来送礼物吧～</p>
         <div className="h-8 w-8">
-          <img src="public/lovable-uploads/7d04d4f0-be3d-4c18-8f8d-d3e0d3fa5fb3.png" alt="礼物" className="h-full w-full object-contain" />
+          <img alt="礼物" className="h-full w-full object-contain" src="/lovable-uploads/2c562bd4-b51f-4212-bd91-23b974d36d91.png" />
         </div>
       </div>
       
@@ -452,12 +400,8 @@ const PostDetail: React.FC = () => {
       
       {/* Comments */}
       <div className="flex-1 bg-white">
-        {commentLoading ? (
-          <div className="p-4 text-center text-gray-500">加载评论中...</div>
-        ) : comments.length > 0 ? (
-          <div>
-            {comments.map((comment) => (
-              <div key={comment.id} className="p-4 border-b">
+        {commentLoading ? <div className="p-4 text-center text-gray-500">加载评论中...</div> : comments.length > 0 ? <div>
+            {comments.map(comment => <div key={comment.id} className="p-4 border-b">
                 <div className="flex">
                   <Avatar className="h-10 w-10 mr-3">
                     <AvatarImage src={comment.profiles?.avatar || '/placeholder.svg'} />
@@ -474,31 +418,15 @@ const PostDetail: React.FC = () => {
                     <p className="mt-1">{comment.content}</p>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-4 text-center text-gray-500">暂无评论，快来发表评论吧</div>
-        )}
+              </div>)}
+          </div> : <div className="p-4 text-center text-gray-500">暂无评论，快来发表评论吧</div>}
       </div>
       
       {/* Comment input */}
       <div className="sticky bottom-0 bg-white border-t p-2 flex items-center">
-        <input
-          ref={commentInputRef}
-          type="text"
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="说点什么吧..."
-          className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-        />
-        <Send 
-          className={`h-6 w-6 ml-2 ${newComment.trim() ? 'text-blue-500' : 'text-gray-400'}`} 
-          onClick={handleSubmitComment}
-        />
+        <input ref={commentInputRef} type="text" value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="说点什么吧..." className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
+        <Send className={`h-6 w-6 ml-2 ${newComment.trim() ? 'text-blue-500' : 'text-gray-400'}`} onClick={handleSubmitComment} />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default PostDetail;
