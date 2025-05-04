@@ -17,7 +17,7 @@ const Messages: React.FC = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<'chat' | 'matching'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'match'>('chat');
   const { toast } = useToast();
   
   useEffect(() => {
@@ -59,7 +59,7 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          profiles:profiles!messages_sender_id_fkey(id, nickname, avatar)
+          profiles!messages_sender_id_fkey(id, nickname, avatar)
         `)
         .eq('receiver_id', user.id)
         .order('created_at', { ascending: false });
@@ -75,7 +75,7 @@ const Messages: React.FC = () => {
           content,
           created_at,
           read,
-          profiles:profiles!messages_receiver_id_fkey(id, nickname, avatar)
+          profiles!messages_receiver_id_fkey(id, nickname, avatar)
         `)
         .eq('sender_id', user.id)
         .order('created_at', { ascending: false });
@@ -163,33 +163,6 @@ const Messages: React.FC = () => {
     }
   };
   
-  const formatDate = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp);
-      const now = new Date();
-      
-      // If the message is from today, show only time
-      const isSameDay = date.getDate() === now.getDate() && 
-                        date.getMonth() === now.getMonth() && 
-                        date.getFullYear() === now.getFullYear();
-      
-      if (isSameDay) {
-        return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-      }
-      
-      // If the message is from this year, show month and day
-      const isSameYear = date.getFullYear() === now.getFullYear();
-      if (isSameYear) {
-        return `${date.getMonth() + 1}月${date.getDate()}日`;
-      }
-      
-      // Otherwise show the full date
-      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-    } catch (e) {
-      return '未知时间';
-    }
-  };
-  
   const handleChatClick = (userId: string) => {
     navigate(`/chat/${userId}`);
   };
@@ -202,7 +175,7 @@ const Messages: React.FC = () => {
     navigate('/messages/search');
   };
   
-  const handleTabChange = (tab: 'chat' | 'matching') => {
+  const handleTabChange = (tab: 'chat' | 'match') => {
     setActiveTab(tab);
   };
 
