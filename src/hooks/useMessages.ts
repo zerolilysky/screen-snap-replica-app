@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +9,7 @@ export interface MessageItem {
   lastMessage: string;
   timestamp: string;
   unread: boolean;
+  media_url?: string | null;
 }
 
 const mockMessages = [
@@ -107,6 +107,7 @@ export function useMessages(userId: string | undefined) {
           content,
           created_at,
           read,
+          media_url,
           profiles!messages_sender_id_fkey(id, nickname, avatar)
         `)
         .eq('receiver_id', userId)
@@ -123,6 +124,7 @@ export function useMessages(userId: string | undefined) {
           content,
           created_at,
           read,
+          media_url,
           profiles!messages_receiver_id_fkey(id, nickname, avatar)
         `)
         .eq('sender_id', userId)
@@ -131,28 +133,34 @@ export function useMessages(userId: string | undefined) {
       if (sentError) throw sentError;
       
       // Process received messages with updated field access
-      const receivedMessages = receivedData.map(msg => ({
-        id: msg.id,
-        user_id: msg.sender_id,
-        content: msg.content,
-        created_at: msg.created_at,
-        read: msg.read,
-        nickname: msg.profiles?.nickname || '未知用户',
-        avatar: msg.profiles?.avatar || '/placeholder.svg',
-        isOutgoing: false
-      }));
+      const receivedMessages = receivedData
+        .filter(msg => !msg.is_typing) // Filter out typing indicators
+        .map(msg => ({
+          id: msg.id,
+          user_id: msg.sender_id,
+          content: msg.content,
+          created_at: msg.created_at,
+          read: msg.read,
+          media_url: msg.media_url,
+          nickname: msg.profiles?.nickname || '未知用户',
+          avatar: msg.profiles?.avatar || '/placeholder.svg',
+          isOutgoing: false
+        }));
       
       // Process sent messages with updated field access
-      const sentMessages = sentData.map(msg => ({
-        id: msg.id,
-        user_id: msg.receiver_id,
-        content: msg.content,
-        created_at: msg.created_at,
-        read: msg.read,
-        nickname: msg.profiles?.nickname || '未知用户',
-        avatar: msg.profiles?.avatar || '/placeholder.svg',
-        isOutgoing: true
-      }));
+      const sentMessages = sentData
+        .filter(msg => !msg.is_typing) // Filter out typing indicators
+        .map(msg => ({
+          id: msg.id,
+          user_id: msg.receiver_id,
+          content: msg.content,
+          created_at: msg.created_at,
+          read: msg.read,
+          media_url: msg.media_url,
+          nickname: msg.profiles?.nickname || '未知用户',
+          avatar: msg.profiles?.avatar || '/placeholder.svg',
+          isOutgoing: true
+        }));
       
       // Combine all messages
       let allMessages = [...receivedMessages, ...sentMessages];
@@ -165,6 +173,7 @@ export function useMessages(userId: string | undefined) {
           content: msg.lastMessage,
           created_at: msg.timestamp,
           read: !msg.unread,
+          media_url: null,
           nickname: msg.nickname,
           avatar: msg.avatar,
           isOutgoing: false
@@ -205,14 +214,25 @@ export function useMessages(userId: string | undefined) {
       });
       
       // Convert to array and keep only the most recent message for each user
-      const latestMessages = Object.values(userConversations).map((conv: any) => ({
-        user_id: conv.user_id,
-        nickname: conv.nickname,
-        avatar: conv.avatar,
-        lastMessage: conv.messages[0].content,
-        timestamp: conv.messages[0].created_at,
-        unread: conv.messages.some((m: any) => !m.read && !m.isOutgoing)
-      }));
+      const latestMessages = Object.values(userConversations).map((conv: any) => {
+        const lastMsg = conv.messages[0];
+        // For image messages that don't have content, add a placeholder
+        let messageText = lastMsg.content;
+        
+        if (lastMsg.media_url && (!lastMsg.content || lastMsg.content === '📷 图片消息')) {
+          messageText = '📷 图片消息';
+        }
+        
+        return {
+          user_id: conv.user_id,
+          nickname: conv.nickname,
+          avatar: conv.avatar,
+          lastMessage: messageText,
+          timestamp: lastMsg.created_at,
+          unread: conv.messages.some((m: any) => !m.read && !m.isOutgoing),
+          media_url: lastMsg.media_url
+        };
+      });
       
       // Sort by timestamp (newest first)
       latestMessages.sort((a: any, b: any) => 

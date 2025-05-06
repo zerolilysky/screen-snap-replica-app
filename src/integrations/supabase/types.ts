@@ -153,11 +153,55 @@ export type Database = {
           },
         ]
       }
+      match_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          status: string
+          updated_at: string | null
+          user_from: string
+          user_to: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          status: string
+          updated_at?: string | null
+          user_from: string
+          user_to: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+          user_from?: string
+          user_to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_requests_user_from_fkey"
+            columns: ["user_from"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_requests_user_to_fkey"
+            columns: ["user_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string | null
           created_at: string | null
           id: string
+          is_typing: boolean | null
+          media_url: string | null
           read: boolean | null
           receiver_id: string
           sender_id: string
@@ -166,6 +210,8 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          is_typing?: boolean | null
+          media_url?: string | null
           read?: boolean | null
           receiver_id: string
           sender_id: string
@@ -174,6 +220,8 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          is_typing?: boolean | null
+          media_url?: string | null
           read?: boolean | null
           receiver_id?: string
           sender_id?: string

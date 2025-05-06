@@ -1,73 +1,104 @@
 
 import React from 'react';
+import { format } from 'date-fns';
+import UserAvatar from './UserAvatar';
+import { cn } from '@/lib/utils';
+
+interface Message {
+  id: string;
+  content: string | null;
+  created_at: string;
+  sender_id: string;
+  receiver_id: string;
+  read?: boolean;
+  media_url?: string | null;
+  is_typing?: boolean;
+}
 
 interface ChatMessageProps {
-  message: {
-    id: string;
-    content: string;
-    sender_id: string;
-    receiver_id: string;
-    created_at: string;
-    image_url?: string | null;
-    read?: boolean;
-  };
+  message: Message;
   isCurrentUser: boolean;
   senderAvatar?: string;
   senderName?: string;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ 
-  message, 
-  isCurrentUser, 
-  senderAvatar = "/placeholder.svg",
-  senderName = "用户"
+const ChatMessage: React.FC<ChatMessageProps> = ({
+  message,
+  isCurrentUser,
+  senderAvatar,
+  senderName
 }) => {
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const formattedTime = format(new Date(message.created_at), 'HH:mm');
+  
+  // Skip rendering typing indicators for current user
+  if (message.is_typing && isCurrentUser) {
+    return null;
+  }
 
+  // Don't render pure typing indicators (they're handled in the Chat component)
+  if (message.is_typing && !message.content && !message.media_url) {
+    return null;
+  }
+  
   return (
-    <div 
-      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}
-    >
+    <div className={cn(
+      "flex mb-3",
+      isCurrentUser ? "justify-end" : "justify-start"
+    )}>
       {!isCurrentUser && (
-        <img 
-          src={senderAvatar}
-          alt={senderName}
-          className="h-8 w-8 rounded-full mr-2 self-end"
-        />
+        <div className="mr-2 flex-shrink-0">
+          <UserAvatar src={senderAvatar} />
+        </div>
       )}
       
-      <div 
-        className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-          isCurrentUser 
-            ? 'bg-blue-500 text-white rounded-br-none' 
-            : 'bg-white text-gray-800 rounded-bl-none shadow-sm'
-        }`}
-      >
-        <p className="break-words">{message.content}</p>
-        {message.image_url && (
-          <img 
-            src={message.image_url} 
-            alt="消息图片" 
-            className="mt-2 rounded-lg max-w-full" 
-          />
+      <div className={cn(
+        "max-w-[70%]", 
+        isCurrentUser ? "items-end" : "items-start"
+      )}>
+        {!isCurrentUser && senderName && (
+          <div className="text-xs text-gray-600 mb-1 ml-1">{senderName}</div>
         )}
-        <div 
-          className={`text-xs mt-1 text-right ${
-            isCurrentUser ? 'text-blue-100' : 'text-gray-500'
-          }`}
-        >
-          {formatTime(message.created_at)}
+        
+        <div className="flex items-end gap-1">
+          {isCurrentUser && (
+            <div className="text-xs text-gray-500 self-end mb-1">
+              {message.read ? '已读' : ''}
+            </div>
+          )}
+          
+          <div className={cn(
+            "rounded-xl p-3 break-words",
+            isCurrentUser 
+              ? "bg-blue-500 text-white rounded-tr-none" 
+              : "bg-white border border-gray-200 rounded-tl-none"
+          )}>
+            {message.media_url ? (
+              <div className="flex flex-col space-y-2">
+                <img 
+                  src={message.media_url} 
+                  alt="图片消息" 
+                  className="max-w-full rounded-md cursor-pointer"
+                  onClick={() => window.open(message.media_url!, '_blank')}
+                />
+                {message.content && <div>{message.content}</div>}
+              </div>
+            ) : (
+              <div>{message.content}</div>
+            )}
+            <div className={cn(
+              "text-xs mt-1",
+              isCurrentUser ? "text-blue-100" : "text-gray-500"
+            )}>
+              {formattedTime}
+            </div>
+          </div>
         </div>
       </div>
       
       {isCurrentUser && (
-        <div className="w-8"></div> // Spacer for alignment
+        <div className="ml-2 flex-shrink-0">
+          <UserAvatar src={senderAvatar} />
+        </div>
       )}
     </div>
   );

@@ -2,116 +2,71 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import StatusBar from '../components/StatusBar';
-import { ArrowLeft, MessageSquare, Heart, X, UserPlus, Check } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Heart, Flag, Share2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
-interface UserProfileData {
+interface Profile {
   id: string;
   nickname: string;
   avatar: string;
   gender: string;
   birth_date: string | null;
-  location: string | null;
   tagline: string | null;
-  relationship_status: string | null;
+  location: string | null;
+  height: number | null;
+  weight: number | null;
   personality_type: string | null;
-}
-
-interface PersonalityData {
-  extraversion: number | null;
-  sensing: number | null;
-  thinking: number | null;
+  relationship_status: string | null;
+  is_online: boolean;
 }
 
 const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
-  const [profileData, setProfileData] = useState<UserProfileData | null>(null);
-  const [personalityData, setPersonalityData] = useState<PersonalityData | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [matchStatus, setMatchStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'matched' | 'rejected'>('none');
   
   useEffect(() => {
-    if (id) {
-      fetchUserProfile();
-      if (user) {
-        checkFollowStatus();
-      }
+    if (!id) return;
+    
+    fetchProfile();
+    if (user) {
+      checkMatchStatus();
     }
   }, [id, user]);
   
-  const fetchUserProfile = async () => {
-    setLoading(true);
+  const fetchProfile = async () => {
+    if (!id) return;
+    
     try {
-      // Validate if the id is a valid UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const isValidUuid = id && uuidRegex.test(id);
-      
-      if (!isValidUuid) {
-        // For mock data users (non-UUID ids)
-        const mockUsers = [
-          {
-            id: id,
-            nickname: 'Mock User ' + id,
-            avatar: "/lovable-uploads/e33615e0-c808-4a56-9285-ec441f7223b9.png",
-            gender: 'female',
-            birth_date: '1995-01-01',
-            location: '上海市',
-            tagline: '这是一个模拟用户账号',
-            relationship_status: '单身',
-            personality_type: 'ENFP'
-          }
-        ];
-        
-        setProfileData(mockUsers[0]);
-        setPersonalityData({
-          extraversion: 75,
-          sensing: 60,
-          thinking: 40
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // Record profile view only if both IDs are valid UUIDs
-      if (user && id && user.id !== id) {
-        await supabase
-          .from('profile_views')
-          .upsert({ viewer_id: user.id, viewed_id: id, created_at: new Date().toISOString() })
-          .select();
-      }
-      
-      // Fetch profile data
-      const { data: profileData, error: profileError } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', id)
         .single();
         
-      if (profileError) throw profileError;
+      if (error) throw error;
       
-      setProfileData(profileData);
+      setProfile(data);
       
-      // Fetch personality data
-      const { data: personalityData, error: personalityError } = await supabase
-        .from('personality_tests')
-        .select('*')
-        .eq('user_id', id)
-        .single();
-        
-      if (!personalityError) {
-        setPersonalityData(personalityData);
+      // Record profile view
+      if (user && user.id !== id) {
+        await supabase.from('profile_views').insert({
+          viewer_id: user.id,
+          viewed_id: id
+        });
       }
     } catch (error) {
       console.error('获取用户资料错误:', error);
       toast({
         title: "获取用户资料失败",
-        description: "无法加载用户资料，请稍后再试",
+        description: "无法加载用户资料",
         variant: "destructive"
       });
     } finally {
@@ -119,243 +74,312 @@ const UserProfile: React.FC = () => {
     }
   };
   
-  const checkFollowStatus = async () => {
-    // This would be implemented with a follows/friends table
-    // For now using mock data
-    setIsFollowing(false);
+  const checkMatchStatus = async () => {
+    if (!user || !id) return;
+    
+    try {
+      // Check if there's any match between current user and profile user
+      const { data: sentRequest, error: sentError } = await supabase
+        .from('match_requests')
+        .select('status')
+        .eq('user_from', user.id)
+        .eq('user_to', id)
+        .maybeSingle();
+        
+      if (sentError) throw sentError;
+      
+      if (sentRequest) {
+        setMatchStatus(sentRequest.status === 'pending' ? 'pending_sent' : sentRequest.status as any);
+        return;
+      }
+      
+      // Check if user has sent a request to current user
+      const { data: receivedRequest, error: receivedError } = await supabase
+        .from('match_requests')
+        .select('status')
+        .eq('user_from', id)
+        .eq('user_to', user.id)
+        .maybeSingle();
+        
+      if (receivedError) throw receivedError;
+      
+      if (receivedRequest) {
+        setMatchStatus(receivedRequest.status === 'pending' ? 'pending_received' : receivedRequest.status as any);
+        return;
+      }
+      
+      setMatchStatus('none');
+    } catch (error) {
+      console.error('检查匹配状态错误:', error);
+    }
   };
   
-  const handleChat = async () => {
+  const handleAction = async (action: 'match' | 'message' | 'report') => {
     if (!user) {
       navigate('/auth');
       return;
     }
     
-    if (id) {
+    if (!id || !profile) return;
+    
+    if (action === 'match') {
       try {
-        // Validate if the id is a valid UUID
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const isValidUuid = uuidRegex.test(id);
-        
-        if (!isValidUuid) {
-          // For mock data, navigate directly to chat
-          navigate(`/chat/${id}`);
-          return;
-        }
-        
-        // Create initial message if there's no conversation yet
-        const { data: existingMessages, error: checkError } = await supabase
-          .from('messages')
-          .select('id')
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${user.id})`)
-          .limit(1);
+        if (matchStatus === 'pending_received') {
+          // Accept the match request
+          const { error } = await supabase
+            .from('match_requests')
+            .update({ status: 'matched', updated_at: new Date().toISOString() })
+            .eq('user_from', id)
+            .eq('user_to', user.id);
+            
+          if (error) throw error;
           
-        if (checkError) throw checkError;
-        
-        if (!existingMessages || existingMessages.length === 0) {
-          // Send welcome message
-          await supabase
-            .from('messages')
+          setMatchStatus('matched');
+          toast({
+            title: "配对成功",
+            description: `你已与 ${profile.nickname} 配对成功`
+          });
+        } else if (matchStatus === 'none') {
+          // Send a match request
+          const { error } = await supabase
+            .from('match_requests')
             .insert({
-              sender_id: user.id,
-              receiver_id: id,
-              content: "你好，很高兴认识你！",
+              user_from: user.id,
+              user_to: id,
+              status: 'pending'
             });
+            
+          if (error) throw error;
+          
+          setMatchStatus('pending_sent');
+          toast({
+            title: "配对请求已发送",
+            description: `已向 ${profile.nickname} 发送配对请求`
+          });
+        } else if (matchStatus === 'matched') {
+          // Already matched, go to chat
+          navigate(`/chat/${id}`);
         }
-        
-        // Navigate to chat
-        navigate(`/chat/${id}`);
-      } catch (error) {
-        console.error('启动聊天错误:', error);
+      } catch (error: any) {
+        console.error('匹配操作错误:', error);
         toast({
-          title: "启动聊天失败",
-          description: "无法开始聊天，请稍后再试",
+          title: "操作失败",
+          description: error.message,
           variant: "destructive"
         });
       }
+    } else if (action === 'message') {
+      if (matchStatus === 'matched') {
+        navigate(`/chat/${id}`);
+      } else {
+        toast({
+          title: "无法发送消息",
+          description: "需要先完成配对才能发送消息",
+          variant: "destructive"
+        });
+      }
+    } else if (action === 'report') {
+      toast({
+        title: "举报已提交",
+        description: "我们将尽快处理您的举报"
+      });
     }
   };
   
-  const handleFollow = async () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
-    // This would be implemented with a follows/friends table
-    // For now just toggling state
-    setIsFollowing(!isFollowing);
-    
-    toast({
-      description: isFollowing ? "已取消关注" : "关注成功"
-    });
-  };
-  
-  // Calculate age from birth_date
-  const calculateAge = (birthDate: string | null): number | null => {
+  const calculateAge = (birthDate: string | null) => {
     if (!birthDate) return null;
     
+    const birth = new Date(birthDate);
     const today = new Date();
-    const birthDateObj = new Date(birthDate);
-    let age = today.getFullYear() - birthDateObj.getFullYear();
-    const monthDiff = today.getMonth() - birthDateObj.getMonth();
+    let age = today.getFullYear() - birth.getFullYear();
     
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
+    // Adjust age if birthday hasn't occurred yet this year
+    if (today.getMonth() < birth.getMonth() || 
+        (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) {
       age--;
     }
     
     return age;
   };
   
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-2 border-gray-500 rounded-full border-t-transparent"></div>
-      </div>
-    );
-  }
-  
-  const age = profileData?.birth_date ? calculateAge(profileData.birth_date) : null;
+  const getMatchStatusText = () => {
+    switch (matchStatus) {
+      case 'pending_sent':
+        return '配对请求已发送';
+      case 'pending_received':
+        return '对方想与你配对';
+      case 'matched':
+        return '已配对';
+      case 'rejected':
+        return '对方拒绝了配对';
+      default:
+        return '';
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <StatusBar time="20:21" />
-      
-      <div className="p-4 bg-white border-b border-gray-100 flex justify-between items-center">
-        <button onClick={() => navigate(-1)}>
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-lg font-medium">用户资料</h1>
-        <div className="w-6"></div>
-      </div>
-      
+    <div className="min-h-screen bg-gray-50">
       <div className="relative">
-        <div className="h-48 bg-gradient-to-r from-blue-400 to-purple-500"></div>
-        <div className="absolute bottom-0 transform translate-y-1/2 left-0 right-0 flex justify-center">
-          <div className="h-24 w-24 rounded-full border-4 border-white overflow-hidden">
-            <img 
-              src={profileData?.avatar || "/placeholder.svg"} 
-              alt={profileData?.nickname || '未知用户'} 
-              className="w-full h-full object-cover"
-            />
-          </div>
+        <div className="h-64 bg-gradient-to-b from-blue-500 to-purple-500">
+          {/* Background cover */}
         </div>
-      </div>
-      
-      <div className="mt-16 text-center px-4">
-        <h1 className="text-2xl font-bold">{profileData?.nickname || '未知用户'}</h1>
-        <p className="text-gray-500 mt-1">
-          {profileData?.gender || '未设置'} 
-          {age ? ` · ${age}岁` : ''} 
-          {profileData?.location ? ` · ${profileData.location}` : ''}
-        </p>
         
-        <div className="flex justify-center space-x-4 mt-6">
-          <Button 
-            variant="outline" 
-            className="flex items-center rounded-full px-6"
-            onClick={handleChat}
+        <button 
+          onClick={() => navigate(-1)} 
+          className="absolute top-10 left-4 bg-white/30 p-2 rounded-full"
+        >
+          <ArrowLeft className="text-white" size={24} />
+        </button>
+        
+        <div className="absolute top-10 right-4 flex space-x-2">
+          <button 
+            onClick={() => handleAction('report')} 
+            className="bg-white/30 p-2 rounded-full"
           >
-            <MessageSquare size={16} className="mr-2" />
-            聊天
-          </Button>
-          <Button 
-            className={`flex items-center rounded-full px-6 ${
-              isFollowing ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-red-500 hover:bg-red-600'
-            }`}
-            onClick={handleFollow}
-          >
-            {isFollowing ? (
-              <>
-                <Check size={16} className="mr-2" />
-                已关注
-              </>
-            ) : (
-              <>
-                <UserPlus size={16} className="mr-2" />
-                关注
-              </>
-            )}
-          </Button>
+            <Flag className="text-white" size={20} />
+          </button>
+          <button className="bg-white/30 p-2 rounded-full">
+            <Share2 className="text-white" size={20} />
+          </button>
         </div>
       </div>
       
-      <div className="mt-8 px-4">
-        <div className="bg-white rounded-xl p-6">
-          <h2 className="text-lg font-medium mb-4">关于我</h2>
-          <p className="text-gray-600">{profileData?.tagline || '这个人很神秘，还没有填写个人介绍...'}</p>
-          
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <h3 className="text-sm text-gray-500">爱好</h3>
-              <p className="font-medium mt-1">运动，电影，美食</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <h3 className="text-sm text-gray-500">职业</h3>
-              <p className="font-medium mt-1">未设置</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <h3 className="text-sm text-gray-500">感情状态</h3>
-              <p className="font-medium mt-1">{profileData?.relationship_status || '单身'}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <h3 className="text-sm text-gray-500">教育程度</h3>
-              <p className="font-medium mt-1">未设置</p>
+      <div className="relative -mt-20 pb-6">
+        <div className="bg-white rounded-t-3xl shadow-sm">
+          <div className="flex justify-between p-6">
+            <div className="flex-1">
+              <div className="flex items-center">
+                <div className="relative">
+                  {loading ? (
+                    <div className="h-24 w-24 rounded-full bg-gray-200 animate-pulse" />
+                  ) : (
+                    <img 
+                      src={profile?.avatar || "/placeholder.svg"}
+                      alt={profile?.nickname || "User"} 
+                      className="h-24 w-24 rounded-full border-4 border-white object-cover" 
+                    />
+                  )}
+                  
+                  {profile?.is_online && (
+                    <div className="absolute bottom-1 right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-white" />
+                  )}
+                </div>
+                
+                <div className="ml-4">
+                  {loading ? (
+                    <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+                  ) : (
+                    <h1 className="text-xl font-bold">{profile?.nickname}</h1>
+                  )}
+                  
+                  <div className="flex items-center mt-1">
+                    {loading ? (
+                      <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        {profile?.gender && (
+                          <span className="text-xs bg-red-50 text-red-500 rounded px-2 py-0.5 mr-2">
+                            {profile.gender === 'male' ? '♂' : '♀'} {calculateAge(profile.birth_date)}
+                          </span>
+                        )}
+                        {profile?.location && (
+                          <span className="text-xs text-gray-600">{profile.location}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  {matchStatus !== 'none' && (
+                    <div className="mt-2">
+                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                        {getMatchStatusText()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                {loading ? (
+                  <>
+                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-2" />
+                    <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+                  </>
+                ) : (
+                  <p className="text-gray-600">{profile?.tagline || "这个用户还没有设置个性签名"}</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      
-      <div className="mt-4 px-4 mb-6">
-        <div className="bg-white rounded-xl p-6">
-          <h2 className="text-lg font-medium mb-4">人格分析</h2>
           
-          {personalityData ? (
-            <>
-              <div className="mb-4">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">外向</span>
-                  <span className="text-sm text-gray-500">内向</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full mt-1">
-                  <div 
-                    className="h-full bg-blue-400 rounded-full" 
-                    style={{ width: `${personalityData.extraversion ? personalityData.extraversion : 50}%` }}
-                  ></div>
-                </div>
-              </div>
+          <div className="flex px-6 pb-4 space-x-2">
+            <Button 
+              className="flex-1"
+              variant={matchStatus === 'matched' ? 'outline' : 'default'}
+              onClick={() => handleAction('match')}
+              disabled={matchStatus === 'rejected'}
+            >
+              <Heart className={`mr-2 h-4 w-4 ${matchStatus === 'matched' ? 'fill-red-500 text-red-500' : ''}`} />
+              {matchStatus === 'matched' ? '已配对' : 
+               matchStatus === 'pending_sent' ? '已发送' :
+               matchStatus === 'pending_received' ? '接受配对' :
+               matchStatus === 'rejected' ? '已拒绝' : '配对'}
+            </Button>
+            
+            <Button 
+              className="flex-1" 
+              variant="outline" 
+              onClick={() => handleAction('message')}
+              disabled={matchStatus !== 'matched'}
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              发送消息
+            </Button>
+          </div>
+          
+          <div className="border-t border-gray-100">
+            <div className="p-6">
+              <h2 className="text-lg font-medium mb-4">个人资料</h2>
               
-              <div className="mb-4">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">理性</span>
-                  <span className="text-sm text-gray-500">感性</span>
+              {loading ? (
+                <div className="space-y-3">
+                  <div className="h-6 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-6 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-6 bg-gray-200 rounded animate-pulse" />
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full mt-1">
-                  <div 
-                    className="h-full bg-orange-400 rounded-full" 
-                    style={{ width: `${personalityData.sensing ? personalityData.sensing : 50}%` }}
-                  ></div>
+              ) : (
+                <div className="space-y-3">
+                  {profile?.personality_type && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">人格类型</span>
+                      <span>{profile.personality_type}</span>
+                    </div>
+                  )}
+                  
+                  {profile?.relationship_status && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">情感状态</span>
+                      <span>{profile.relationship_status}</span>
+                    </div>
+                  )}
+                  
+                  {profile?.height && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">身高</span>
+                      <span>{profile.height} cm</span>
+                    </div>
+                  )}
+                  
+                  {profile?.weight && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">体重</span>
+                      <span>{profile.weight} kg</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-              
-              <div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">理性</span>
-                  <span className="text-sm text-gray-500">情感</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full mt-1">
-                  <div 
-                    className="h-full bg-purple-400 rounded-full" 
-                    style={{ width: `${personalityData.thinking ? personalityData.thinking : 50}%` }}
-                  ></div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="text-center text-gray-500 py-4">
-              该用户尚未完成人格测试
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
