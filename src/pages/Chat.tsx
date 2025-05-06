@@ -12,11 +12,11 @@ import ChatDateSeparator from '@/components/ChatDateSeparator';
 
 interface Message {
   id: string;
-  content: string;
+  content: string | null;
   sender_id: string;
   receiver_id: string;
   created_at: string;
-  read: boolean;
+  read: boolean | null;
   media_url?: string | null;
   is_typing?: boolean;
 }
@@ -208,10 +208,10 @@ const Chat: React.FC = () => {
       if (fetchError) throw fetchError;
       
       if (existingTyping) {
-        // Update existing typing indicator
+        // Update existing typing indicator timestamp in the database
         const { error } = await supabase
           .from('messages')
-          .update({ updated_at: new Date().toISOString() })
+          .update({ created_at: new Date().toISOString() })
           .eq('id', existingTyping.id);
           
         if (error) throw error;

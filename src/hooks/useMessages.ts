@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -108,6 +109,7 @@ export function useMessages(userId: string | undefined) {
           created_at,
           read,
           media_url,
+          is_typing,
           profiles!messages_sender_id_fkey(id, nickname, avatar)
         `)
         .eq('receiver_id', userId)
@@ -125,6 +127,7 @@ export function useMessages(userId: string | undefined) {
           created_at,
           read,
           media_url,
+          is_typing,
           profiles!messages_receiver_id_fkey(id, nickname, avatar)
         `)
         .eq('sender_id', userId)
@@ -134,8 +137,8 @@ export function useMessages(userId: string | undefined) {
       
       // Process received messages with updated field access
       const receivedMessages = receivedData
-        .filter(msg => !msg.is_typing) // Filter out typing indicators
-        .map(msg => ({
+        .filter((msg: any) => !msg.is_typing) // Filter out typing indicators
+        .map((msg: any) => ({
           id: msg.id,
           user_id: msg.sender_id,
           content: msg.content,
@@ -149,8 +152,8 @@ export function useMessages(userId: string | undefined) {
       
       // Process sent messages with updated field access
       const sentMessages = sentData
-        .filter(msg => !msg.is_typing) // Filter out typing indicators
-        .map(msg => ({
+        .filter((msg: any) => !msg.is_typing) // Filter out typing indicators
+        .map((msg: any) => ({
           id: msg.id,
           user_id: msg.receiver_id,
           content: msg.content,

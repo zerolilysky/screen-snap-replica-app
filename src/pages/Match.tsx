@@ -21,6 +21,7 @@ interface NearbyUser {
 
 interface CurrentUser {
   id: string;
+  name: string;
   avatar: string;
 }
 
@@ -86,6 +87,7 @@ const Match: React.FC = () => {
       // Set current user info
       setCurrentUser({
         id: user.id,
+        name: profile?.nickname || '未知用户',
         avatar: profile?.avatar || '/placeholder.svg'
       });
       
