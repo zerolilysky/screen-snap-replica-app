@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +19,7 @@ const PostDetail: React.FC = () => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
+  const [submittingComment, setSubmittingComment] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -209,7 +209,12 @@ const PostDetail: React.FC = () => {
       return;
     }
     if (!newComment.trim()) return;
+    
     try {
+      setSubmittingComment(true);
+      console.log("Submitting comment with user_id:", user.id);
+      console.log("Post ID:", id);
+      
       const { data, error } = await supabase.from('comments').insert({
         user_id: user.id,
         post_id: id,
@@ -222,6 +227,7 @@ const PostDetail: React.FC = () => {
             avatar
           )
         `).single();
+      
       if (error) throw error;
       
       // Since we have a real-time subscription, the comment will be added automatically
@@ -248,6 +254,8 @@ const PostDetail: React.FC = () => {
         description: error.message,
         variant: "destructive"
       });
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -451,8 +459,20 @@ const PostDetail: React.FC = () => {
       
       {/* Comment input */}
       <div className="sticky bottom-0 bg-white border-t p-2 flex items-center">
-        <input ref={commentInputRef} type="text" value={newComment} onChange={e => setNewComment(e.target.value)} placeholder={user ? "说点什么吧..." : "请先登录后评论"} className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500" disabled={!user} />
-        <Send className={`h-6 w-6 ml-2 ${newComment.trim() && user ? 'text-blue-500' : 'text-gray-400'}`} onClick={handleSubmitComment} />
+        <input 
+          ref={commentInputRef} 
+          type="text" 
+          value={newComment} 
+          onChange={e => setNewComment(e.target.value)} 
+          placeholder={user ? "说点什么吧..." : "请先登录后评论"} 
+          className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500" 
+          disabled={!user || submittingComment} 
+        />
+        <Send 
+          className={`h-6 w-6 ml-2 ${newComment.trim() && user && !submittingComment ? 'text-blue-500 cursor-pointer' : 'text-gray-400'}`} 
+          onClick={handleSubmitComment}
+          style={{ opacity: submittingComment ? 0.5 : 1 }}
+        />
       </div>
     </div>;
 };
